@@ -2,7 +2,7 @@
 
 // audio values
 let sound; // audio assets
-let fft;
+let fft; // FFT object
 let mic;
 let startAudio = false;
 let inputMic = false;
@@ -15,7 +15,8 @@ let bpm = 120;
 let beatInterval = (60 / bpm) * 1000;
 let freqThreshold = 200;
 let spectrum, waveform; // spectrum and waveform
-let sLen, wLen; // spectrum length and waveform length
+let sLen;
+let wLen; // spectrum length and waveform length
 
 // display
 let camX = 0;
@@ -44,57 +45,58 @@ let lrBg, kBg, hwBg;
 
 let lr, k, hw;
 
+let setupFinished = false;
+
 
 
 function preload() {
-    sound = loadSound('/assets/i-81-car-pileup.mp3');
+  // audio assets
+  sound = loadSound('/assets/i-81-car-pileup.mp3');
 
-    sfAsleep = loadImage('/assets/sfAsleep.png');
-
-    for (let i = 0; i < 2; i++) {
-      sf[i] = loadImage("/assets/sf/" + i + ".png");
-    }
-
-    lrBg = loadImage("/assets/bg/Living_room_cropped.png");
-    kBg = loadImage("/assets/bg/Kitchen_cropped2.png");
-    hwBg = loadImage("/assets/bg/Hallway_cropped2.png");
-
-    thoughtbubble = loadImage("/assets/thoughtbubble.png");
+  // img assets
+  sfAsleep = loadImage('/assets/sfAsleep.png');
+  for (let i = 0; i < 2; i++) {
+    sf[i] = loadImage("/assets/sf/" + i + ".png");
+  }
+  lrBg = loadImage("/assets/bg/Living_room_cropped.png");
+  kBg = loadImage("/assets/bg/Kitchen_cropped2.png");
+  hwBg = loadImage("/assets/bg/Hallway_cropped2.png");
+  thoughtbubble = loadImage("/assets/thoughtbubble.png");
 }
 
 
 
 function setup() {
+  fitToScreen();
+
+  scrollSpeed = width/500;
+
+  sound.amp(.8);
+  colorMode(RGB);
+  textFont("Courier New");
+  background(0);
+
+  // background
+  partyGoers.push(new PartyGoer(width*1.3, height/2, 3, false));
+  partyGoers.push(new PartyGoer(width*0.95, height/2, 3, false));
+  partyGoers.push(new PartyGoer(width * 1.5, height/2, 3, false));
+  partyGoers.push(new PartyGoer(width * 2.1, height/2, 3, false));
+  partyGoers.push(new PartyGoer(width * 2.4, height/2, 3, false));
   
-    // createCanvas(windowWidth, windowWidth * ratio);
-    createCanvas(windowWidth, windowWidth / ratio);
-    globeScale = min(width, height);
+  // foreground
+  partyGoers.push(new PartyGoer(width*0.5, height/2, 4, false));
+  partyGoers.push(new PartyGoer(width, height/2, 4, false));
+  partyGoers.push(new PartyGoer(width * 1.3, height/2, 4, false));
+  partyGoers.push(new PartyGoer(width * 1.7, height/2, 4, false));
 
-    scrollSpeed = width/500;
+  // spawnNewPartyGoers();
+  
+  lr = new LivingRoom(0);
+  k = new Kitchen(lr.w);
+  hw = new Hallway(lr.w + k.w);
 
-    sound.amp(.8);
-    colorMode(RGB);
-    textFont("Courier New");
-    background(0);
-
-    // background
-    partyGoers.push(new PartyGoer(width*1.3, height/2, 3, false));
-    partyGoers.push(new PartyGoer(width*0.95, height/2, 3, false));
-    partyGoers.push(new PartyGoer(width * 1.5, height/2, 3, false));
-    partyGoers.push(new PartyGoer(width * 2.1, height/2, 3, false));
-    partyGoers.push(new PartyGoer(width * 2.4, height/2, 3, false));
-    
-    // foreground
-    partyGoers.push(new PartyGoer(width*0.5, height/2, 4, false));
-    partyGoers.push(new PartyGoer(width, height/2, 4, false));
-    partyGoers.push(new PartyGoer(width * 1.3, height/2, 4, false));
-    partyGoers.push(new PartyGoer(width * 1.7, height/2, 4, false));
-
-    // spawnNewPartyGoers();
-    
-    lr = new LivingRoom(0);
-    k = new Kitchen(lr.w);
-    hw = new Hallway(lr.w + k.w);
+  colorMode(HSB);
+  setupFinished = true;
 }
 
 function draw() {
@@ -112,11 +114,9 @@ function draw() {
   k.display();
   hw.display();
 
-  displayUI();
+  displayLights();
 
-  noStroke();
-  fill(255, 200, 200, 170);
-  rect(width/2, height/2, 100, 100);
+  displayUI();
 }
 
 // function draw() {
@@ -163,6 +163,21 @@ function draw() {
 //     k.display();
 // }
 
+function fitToScreen() {
+  let w_, h_;
+  if (window.innerWidth > window.innerHeight &&
+      window.innerHeight * ratio < window.innerWidth) { // width is bigger
+    createCanvas(window.innerHeight * ratio, window.innerHeight);
+
+  } else { // height is bigger
+    createCanvas(window.innerWidth, window.innerWidth / ratio);
+  }
+}
+
+function windowResized() {
+  fitToScreen();
+}
+
 function updateAudio() {
 
   bass = fft.getEnergy("bass");
@@ -189,19 +204,12 @@ function updateAudio() {
 
   let timeSinceLastBeat = millis() - lastBeatTime;
   let speedC = map(timeSinceLastBeat, 0, beatInterval, 0, width);
+  spectrum = fft.analyze();
+  sLen = Math.floor(spectrum.length);
+  // sLen = spectrum.length;
 
-  // ellipse(speedC, height / 2, height * 0.5, height * 0.5);
-  // if (speedC == 0) {
-  //   for(let i = 0; i < partyGoers.length; i++) {
-  //     partyGoers[i].anim();
-  //   }
-  // }
-
-  // spectrum = fft.analyze();
-  // sLen = Math.floor(spectrum.length / 5);
-
-  // waveform = fft.waveform();
-  // wlen = waveform.length;
+  waveform = fft.waveform();
+  wLen = waveform.length;
 
 }
 
@@ -240,7 +248,7 @@ function spawnNewPartyGoers() {
 }
 
 function displayUI() {
-  fill(100, 255, 100);
+  fill(120, 255, 255);
   if (stopped) {
     textAlign(CENTER, CENTER);
     textSize(width/20);
@@ -256,33 +264,42 @@ function displayUI() {
    }
 }
 
+function displayLights() {
+    for(let i = 0; i < sLen; i++) {
+    let h = map(spectrum[i], 0, 255, 100, 255);
+    noStroke();
+  }
+}
+
 let stopped = true;
 
 function keyPressed() {
   // background(0);
-  if (keyCode == 32) {
-  getAudioContext().resume();
+  if (setupFinished) {
+    if (keyCode == 32) {
+    getAudioContext().resume();
 
-  if (!startAudio) {
-    mic = new p5.AudioIn();
-    fft = new p5.FFT();
-    mic.start();
-    startAudio = true;
-  }
+    if (!startAudio) {
+      mic = new p5.AudioIn();
+      fft = new p5.FFT();
+      mic.start();
+      startAudio = true;
+    }
 
-    if (stopped) {
-        loop();
-        if (!inputMic) {
-          sound.loop();
-        }
-        stopped = false;
-    } else {
-        noLoop();
-        if (!inputMic) {
-          sound.stop();
-        }
-        stopped = true;
-        reset();
+      if (stopped) {
+          loop();
+          if (!inputMic) {
+            sound.loop();
+          }
+          stopped = false;
+      } else {
+          noLoop();
+          if (!inputMic) {
+            sound.stop();
+          }
+          stopped = true;
+          reset();
+      }
     }
   }
 }
@@ -364,6 +381,7 @@ class LivingRoom
     this.x = x;
     this.w = height * (lrBg.width/lrBg.height);
     this.onscreen = true;
+    this.pg = [];
   }
 
   update(trailX) {
@@ -379,6 +397,9 @@ class LivingRoom
   display() {
     if (this.onscreen) {
       image(lrBg, this.x, 0, this.w, height);
+      for (let i = 0; i < this.pg.length; i++) {
+
+      }
     }
   }
 }
