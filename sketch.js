@@ -106,6 +106,12 @@ function fitToScreen() {
   } else { // height is bigger
     createCanvas(window.innerWidth, window.innerWidth / ratio);
   }
+
+  if(setupFinished) {
+    lr.w = height * (lrBg.width/lrBg.height);
+    k.w = height * (kBg.width/kBg.height);
+    hw.w = height * (hwBg.width/hwBg.height);
+  }
 }
 
 function windowResized() {
@@ -211,19 +217,19 @@ function keyPressed() {
   }
 }
 
-// function mousePressed() {
-//   if (!stopped) {
-//     if (inputMic) {
-//       fft.setInput(sound);
-//       inputMic = false;
-//       sound.loop();
-//     } else {
-//       fft.setInput(mic);
-//       inputMic = true;
-//       sound.stop();
-//     }
-//   }
-// }
+function mousePressed() {
+  if (!stopped) {
+    if (inputMic) {
+      fft.setInput(sound);
+      inputMic = false;
+      sound.loop();
+    } else {
+      fft.setInput(mic);
+      inputMic = true;
+      sound.stop();
+    }
+  }
+}
 
 function reset() {
   camX = 0;
@@ -236,22 +242,23 @@ function reset() {
 
 class PartyGoer
 {
-  constructor(x, y, scale, sleepy) {
+  constructor(x, y, scale, sleepy, anim) {
     this.x = x;
-    this.y = x;
-    this.scale;
+    this.y = y;
+    this.scale = scale;
     this.onscreen = true;
     this.animIndex = 0;
     this.asleep = false;
     this.sleepy = sleepy;
+    this.anim = anim;
   }
   
   display() {
     let img;
     if (!this.asleep) {
-      img = sf[this.animIndex];
+      img = anim[this.animIndex];
     } else {
-      img = sf[sf.length];
+      img = anim[anim.length];
     }
     this.w = img.width*this.scale;
     this.h = img.height*this.scale;
@@ -261,7 +268,7 @@ class PartyGoer
 
   anim() {
     this.animIndex++;
-    if (this.animIndex > sf.length) {
+    if (this.animIndex > anim.length) {
       this.animIndex = 0;
     }
   }
