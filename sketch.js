@@ -112,7 +112,7 @@ function fitToScreen() {
     k.w = height * (kBg.width/kBg.height);
     hw.w = height * (hwBg.width/hwBg.height);
 
-    lr.trailX = 
+    // lr.trailX = 
   }
 }
 
