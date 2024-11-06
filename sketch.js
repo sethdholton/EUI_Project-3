@@ -111,8 +111,16 @@ function fitToScreen() {
     lr.w = height * (lrBg.width/lrBg.height);
     k.w = height * (kBg.width/kBg.height);
     hw.w = height * (hwBg.width/hwBg.height);
+    
+    lr.x = 0;
+    k.x = lr.w;
+    hw.x = k.x + k.w;
 
-    // lr.trailX = 
+    lr.display();
+    k.display();
+    hw.display();
+
+    displayUI();  
   }
 }
 
