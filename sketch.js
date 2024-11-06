@@ -17,6 +17,8 @@ let spectrum, waveform; // spectrum and waveform
 let sLen;
 let wLen; // spectrum length and waveform length
 
+let testCreep;
+
 // display
 let ratio = 1.6;
 let globeScale;
@@ -49,7 +51,7 @@ function preload() {
   // audio assets
   sound = loadSound('/assets/i-81-car-pileup.mp3');
 
-  // img assets
+  // image assets
   loadPartyGoerAssets();
   lrBg = loadImage("/assets/bg/Living_room_cropped.png");
   kBg = loadImage("/assets/bg/Kitchen_cropped2.png");
@@ -60,6 +62,8 @@ function preload() {
 function setup() {
 
   fitToScreen();
+
+  frameRate(30);
 
   scrollSpeed = width/500; // set scroll speed
 
@@ -73,10 +77,13 @@ function setup() {
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
 
+  testCreep = new Creep(0, 0, 1, false);
+
   setupFinished = true;
 }
 
 function draw() {
+  console.log(frameRate());
 
   if (startAudio) {
     updateAudio();
@@ -84,11 +91,13 @@ function draw() {
     lr.update(hw.x + hw.w);
     k.update(lr.x + lr.w);
     hw.update(k.x + k.w);
+    testCreep.update();
   }
 
   lr.display();
   k.display();
   hw.display();
+  testCreep.display();
 
   displayLights();
 
@@ -144,7 +153,7 @@ function updateAudio() {
 
   if (bassEnergy > freqThreshold && millis() - lastBeatTime > beatInterval * 0.8) {
     for(let i = 0; i < partyGoers.length; i++) {
-      partyGoers[i].anim();
+      partyGoers[i].update();
     }
     lastBeatTime = millis();
   }
@@ -197,17 +206,16 @@ function displayLights() {
 let stopped = true;
 
 function keyPressed() {
-  // background(0);
   if (setupFinished) {
     if (keyCode == 32) {
-    getAudioContext().resume();
+      getAudioContext().resume();
 
-    if (!startAudio) {
-      mic = new p5.AudioIn();
-      fft = new p5.FFT();
-      mic.start();
-      startAudio = true;
-    }
+      if (!startAudio) {
+        mic = new p5.AudioIn();
+        fft = new p5.FFT();
+        mic.start();
+        startAudio = true;
+      }
 
       if (stopped) {
           loop();
@@ -249,35 +257,44 @@ function reset() {
 
 class PartyGoer
 {
-  constructor(x, y, scale, sleepy, anim) {
+  constructor(anim, seq, x, y, scale, sleepy) {
     this.x = x;
     this.y = y;
     this.scale = scale;
     this.onscreen = true;
-    this.animIndex = 0;
-    this.asleep = false;
-    this.sleepy = sleepy;
-    this.anim = anim;
+    this.asleep = false; // whether or not they're asleep
+    this.sleepy = sleepy; // whether or not they fall asleep early
+    this.anim = anim; // frame array
+    this.seq = seq; // frame sequence
+    this.animIndex = 0; // place in animation sequence
   }
   
+  update() {
+    this.animIndex++;
+    if (this.animIndex >= this.seq.length) {
+      this.animIndex = 0;
+    }
+  }
+
   display() {
     let img;
     if (!this.asleep) {
-      img = anim[this.animIndex];
+      img = this.anim[this.seq[this.animIndex]];
     } else {
-      img = anim[anim.length];
+      img = this.anim[this.anim.length-1];
     }
-    this.w = img.width*this.scale;
-    this.h = img.height*this.scale;
-    image(img, this.x, this.y, img.width*this.scale, 
-          img.height*this.scale);
-  }
 
-  anim() {
-    this.animIndex++;
-    if (this.animIndex > anim.length) {
-      this.animIndex = 0;
-    }
+    let ratio = img.width/img.height;
+
+    image(img, this.x, this.y, height/2*this.scale,
+          height/2*ratio*this.scale);
+  }
+}
+
+class Creep extends PartyGoer{
+  constructor(x, y, scale, sleepy) {
+    let seq = [1, 1, 1, 2, 3, 0];
+    super(crp, seq, x, y, scale, sleepy);
   }
 }
 
@@ -307,6 +324,10 @@ class LivingRoom
 
       }
     }
+  }
+
+  init() {
+    this.pg.push(new PartyGoer());
   }
 }
 
