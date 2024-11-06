@@ -120,7 +120,7 @@ function fitToScreen() {
     k.display();
     hw.display();
 
-    displayUI();  
+    displayUI();
   }
 }
 
@@ -242,12 +242,9 @@ function mousePressed() {
 }
 
 function reset() {
-  camX = 0;
-
   lr = new LivingRoom(0);
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
-
 }
 
 class PartyGoer
@@ -290,7 +287,7 @@ class LivingRoom
     this.x = x;
     this.w = height * (lrBg.width/lrBg.height);
     this.onscreen = true;
-    this.pg = [];
+    this.pg = []; // partygoer array
   }
 
   update(trailX) {
@@ -319,6 +316,7 @@ class Kitchen
     this.x = x;
     this.w = height * (kBg.width/kBg.height);
     this.onscreen = true;
+    this.pg = []; // partygoer array
   }
 
   update(trailX) {
@@ -332,7 +330,9 @@ class Kitchen
   }
 
   display() {
-    image(kBg, this.x, 0, this.w, height);
+    if (this.onscreen) {
+      image(kBg, this.x, 0, this.w, height);
+    }
   }
 }
 
@@ -342,6 +342,7 @@ class Hallway
     this.x = x;
     this.w = height * (hwBg.width/hwBg.height);
     this.onscreen = true;
+    this.pg = []; // partygoer array
   }
 
   update(trailX) {
@@ -355,6 +356,8 @@ class Hallway
   }
 
   display() {
-    image(hwBg, this.x, 0, this.w, height);
+    if (this.onscreen) {
+      image(hwBg, this.x, 0, this.w, height);
+    }
   }
 }
