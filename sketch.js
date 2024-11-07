@@ -287,9 +287,11 @@ class PartyGoer
     }
 
     let ratio = img.width/img.height;
+
+    this.w = height/2*this.scale;
+    this.h = height/2*ratio*this.scale;
     
-    image(img, this.x, this.y, height/2*this.scale,
-          height/2*ratio*this.scale);
+    image(img, this.x, this.y, this.w, this.h);
   }
 }
 
