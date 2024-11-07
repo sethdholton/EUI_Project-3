@@ -17,8 +17,6 @@ let spectrum, waveform; // spectrum and waveform
 let sLen;
 let wLen; // spectrum length and waveform length
 
-let testCreep;
-
 // display
 let ratio = 1.6;
 let globeScale;
@@ -77,7 +75,7 @@ function setup() {
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
 
-  testCreep = new Creep(0, 0, 1, false);
+  noLoop();
 
   setupFinished = true;
 }
@@ -90,13 +88,11 @@ function draw() {
     lr.update(hw.x + hw.w);
     k.update(lr.x + lr.w);
     hw.update(k.x + k.w);
-    testCreep.update();
   }
 
   lr.display();
   k.display();
   hw.display();
-  testCreep.display();
 
   displayLights();
 
@@ -259,22 +255,25 @@ class PartyGoer
   constructor(anim, seq, rate, x, y, scale, sleepy) {
     this.x = x;
     this.y = y;
-    this.w;
-    this.h;
     this.scale = scale;
     this.onscreen = true;
     this.asleep = false; // whether or not they're asleep
     this.sleepy = sleepy; // whether or not they fall asleep early
     this.anim = anim; // frame array
+    this.ratio = this.anim[0].width/this.anim[0].height;
+    this.w = height/2*this.scale;
+    this.h = height/2*this.scale*this.ratio;
     this.seq = seq; // frame sequence
     this.animIndex = 0; // place in animation sequence
-    this.rate = rate; // animation framerate (% of sketch framerate)
+    this.rate = rate; // animation framerate (1s, 2s 3s, etc.)
   }
   
   update() {
-    this.animIndex++;
-    if (this.animIndex >= this.seq.length) {
-      this.animIndex = 0;
+    if (frameCount % this.rate == 0) {
+      this.animIndex++;
+      if (this.animIndex >= this.seq.length) {
+        this.animIndex = 0;
+      }
     }
   }
 
@@ -286,19 +285,28 @@ class PartyGoer
       img = this.anim[this.anim.length-1];
     }
 
-    let ratio = img.width/img.height;
+    this.ratio = img.width/img.height;
 
     this.w = height/2*this.scale;
-    this.h = height/2*ratio*this.scale;
+    this.h = height/2*this.ratio*this.scale;
     
     image(img, this.x, this.y, this.w, this.h);
   }
 }
 
-class Creep extends PartyGoer{
+class Creep extends PartyGoer
+{
   constructor(x, y, scale, sleepy) {
-    let seq = [1, 1, 1, 2, 3, 0];
-    super(crp, seq, 1, x, y, scale, sleepy);
+    let seq = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 0];
+    super(crp, seq, 4, x, y, scale, sleepy);
+  }
+}
+
+class StickFigure extends PartyGoer
+{
+  constructor(x, y, scale, sleepy) {
+    let seq = [0, 1];
+    super(sf, seq, 4, x, y, scale, sleepy);
   }
 }
 
@@ -308,7 +316,10 @@ class LivingRoom
     this.x = x;
     this.w = height * (lrBg.width/lrBg.height);
     this.onscreen = true;
+    this.prevOnscreen = true;
     this.pg = []; // partygoer array
+
+    this.init();
   }
 
   update(trailX) {
@@ -319,19 +330,24 @@ class LivingRoom
     } else if (this.x < width) {
       this.onscreen = true;
     }
+    this.prevOnscreen = this.onscreen;
   }
 
   display() {
     if (this.onscreen) {
       image(lrBg, this.x, 0, this.w, height);
-      for (let i = 0; i < this.pg.length; i++) {
-
-      }
     }
+    push();
+      translate(this.x, 0);
+      for(let i = 0; i < this.pg.length; i++) {
+        this.pg[i].update();
+        this.pg[i].display();
+      }
+    pop();
   }
 
   init() {
-    this.pg.push(new PartyGoer());
+    this.pg.push(new Creep(width/2, height*0.575, 0.85, false));
   }
 }
 
