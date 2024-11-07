@@ -83,7 +83,6 @@ function setup() {
 }
 
 function draw() {
-  console.log(frameRate());
 
   if (startAudio) {
     updateAudio();
@@ -257,9 +256,11 @@ function reset() {
 
 class PartyGoer
 {
-  constructor(anim, seq, x, y, scale, sleepy) {
+  constructor(anim, seq, rate, x, y, scale, sleepy) {
     this.x = x;
     this.y = y;
+    this.w;
+    this.h;
     this.scale = scale;
     this.onscreen = true;
     this.asleep = false; // whether or not they're asleep
@@ -267,6 +268,7 @@ class PartyGoer
     this.anim = anim; // frame array
     this.seq = seq; // frame sequence
     this.animIndex = 0; // place in animation sequence
+    this.rate = rate; // animation framerate (% of sketch framerate)
   }
   
   update() {
@@ -285,7 +287,7 @@ class PartyGoer
     }
 
     let ratio = img.width/img.height;
-
+    
     image(img, this.x, this.y, height/2*this.scale,
           height/2*ratio*this.scale);
   }
@@ -294,7 +296,7 @@ class PartyGoer
 class Creep extends PartyGoer{
   constructor(x, y, scale, sleepy) {
     let seq = [1, 1, 1, 2, 3, 0];
-    super(crp, seq, x, y, scale, sleepy);
+    super(crp, seq, 1, x, y, scale, sleepy);
   }
 }
 
