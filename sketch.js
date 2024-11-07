@@ -47,14 +47,14 @@ let setupFinished = false;
 function preload() {
 
   // audio assets
-  sound = loadSound('/assets/i-81-car-pileup.mp3');
+  sound = loadSound('./assets/i-81-car-pileup.mp3');
 
   // image assets
   loadPartyGoerAssets();
-  lrBg = loadImage("/assets/bg/Living_room_cropped.png");
-  kBg = loadImage("/assets/bg/Kitchen_cropped2.png");
-  hwBg = loadImage("/assets/bg/Hallway_cropped2.png");
-  thoughtbubble = loadImage("/assets/thoughtbubble.png");
+  lrBg = loadImage("./assets/bg/Living_room_cropped.png");
+  kBg = loadImage("./assets/bg/Kitchen_cropped2.png");
+  hwBg = loadImage("./assets/bg/Hallway_cropped2.png");
+  thoughtbubble = loadImage("./assets/thoughtbubble.png");
 }
 
 function setup() {
@@ -97,6 +97,8 @@ function draw() {
   displayLights();
 
   displayUI();
+
+
 }
 
 
@@ -165,12 +167,12 @@ function loadPartyGoerAssets() {
 
   // stick figure
   for (let i = 0; i < 3; i++) {
-    sf[i] = loadImage("/assets/partygoers/stick-figure/" + i + ".png");
+    sf[i] = loadImage("./assets/partygoers/stick-figure/" + i + ".png");
   }
 
   // creep
   for (let i = 0; i < 4; i++) {
-    crp[i] = loadImage("/assets/partygoers/creep/" + i + ".png");
+    crp[i] = loadImage("./assets/partygoers/creep/" + i + ".png");
   }
 }
 
@@ -252,11 +254,13 @@ function reset() {
 
 class PartyGoer
 {
-  constructor(anim, seq, rate, x, y, scale, sleepy) {
+  constructor(anim, seq, rate, x, y, range, scale, sleepy) {
     this.x = x;
     this.y = y;
+    this.dY = y; // dance y
     this.scale = scale;
     this.onscreen = true;
+    this.range = range; // spectrum frequency range
     this.asleep = false; // whether or not they're asleep
     this.sleepy = sleepy; // whether or not they fall asleep early
     this.anim = anim; // frame array
@@ -289,24 +293,59 @@ class PartyGoer
 
     this.w = height/2*this.scale;
     this.h = height/2*this.ratio*this.scale;
+
+    // for ( let i = 0; i < sLen; i++) {
+    //   h = map(spectrum[i], 0, 255, 0, height);
+    //   push();
+    //     translate(width/2, height/2.05);
+    //     rotate(millis()/25000);
+    //     push();
+    //       let r = map(i, 0, sLen, 0, TWO_PI);
+    //       rotate(r+(millis()/15000));
+    //       fill(420-h*0.5, h*0.5, 255);
+    //       noStroke();
+    //       ellipse(0, (h*0.095)+height/10, (h*50)/width, h*0.33);
+    //     pop();
+    //   pop();
+    // }
+
+    this.dY = this.y
+
+    this.dance();
     
-    image(img, this.x, this.y, this.w, this.h);
+    image(img, this.x, this.dY, this.w, this.h);
+  }
+
+  dance() {
+    if (startAudio) {
+      spectrum = fft.analyze();
+      let avg = 0;
+      for (let i = 0; i < 24; i++) {
+        avg += spectrum[this.range + i];
+      }
+      avg /= 24;
+
+      console.log(avg);
+
+      let h = map(avg, 0, 255, 0, height/20);
+      this.dY += h;
+    }
   }
 }
 
 class Creep extends PartyGoer
 {
-  constructor(x, y, scale, sleepy) {
+  constructor(x, y, range, scale, sleepy) {
     let seq = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 0];
-    super(crp, seq, 4, x, y, scale, sleepy);
+    super(crp, seq, 4, x, y, range, scale, sleepy);
   }
 }
 
 class StickFigure extends PartyGoer
 {
-  constructor(x, y, scale, sleepy) {
+  constructor(x, y, range, scale, sleepy) {
     let seq = [0, 1];
-    super(sf, seq, 4, x, y, scale, sleepy);
+    super(sf, seq, 4, x, y, range, scale, sleepy);
   }
 }
 
@@ -330,6 +369,9 @@ class LivingRoom
     } else if (this.x < width) {
       this.onscreen = true;
     }
+    if (this.onscreen != this.prevOnscreen) {
+
+    }
     this.prevOnscreen = this.onscreen;
   }
 
@@ -347,7 +389,7 @@ class LivingRoom
   }
 
   init() {
-    this.pg.push(new Creep(width/2, height*0.575, 0.85, false));
+    this.pg.push(new Creep(width/2, height*0.575, 0, 0.84, false));
   }
 }
 
