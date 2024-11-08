@@ -16,16 +16,22 @@ let freqThreshold = 200;
 let spectrum, waveform; // spectrum and waveform
 let sLen;
 let wLen; // spectrum length and waveform length
+let thoughtbubbleindex = 0;
 
 // display
 let ratio = 1.6;
 let globeScale;
 
-let displaythoughtbubble = false;
+// let displaythoughtbubble = false;
+let dtb = false;
+let tbx = 0;
+let builtTb = false;
 
 let turnSpeed;
 
 let scrollSpeed;
+
+let phase;
 
 // partygoers
 let partyGoers = [];
@@ -54,7 +60,8 @@ function preload() {
   lrBg = loadImage("./assets/bg/Living_room_cropped.png");
   kBg = loadImage("./assets/bg/Kitchen_cropped2.png");
   hwBg = loadImage("./assets/bg/Hallway_cropped2.png");
-  thoughtbubble = loadImage("./assets/thoughtbubble.png");
+  tb1 = loadImage("./assets/thoughtbubble/0.png");
+  tb2 = loadImage("./assets/thoughtbubble/1.png");
 }
 
 function setup() {
@@ -66,6 +73,8 @@ function setup() {
   scrollSpeed = width/500; // set scroll speed
 
   sound.amp(.8); // set sound volume
+
+  phase = 0;
 
   // style
   textFont("Courier New");
@@ -93,6 +102,27 @@ function draw() {
   lr.display();
   k.display();
   hw.display();
+
+  if (phase == 2 && !builtTb) {
+    dtb = true;
+    tbx = lr.x+k.w+(width/200);
+    builtTb = true;
+  }
+
+  if (dtb) {
+    if (thoughtbubbleindex == 0) {
+      image(tb1, tbx, 0, height*(tb1.width/tb1.height), height);
+      thoughtbubbleindex = 1;
+    } else {
+      image(tb1, tbx, 0, height*(tb1.width/tb1.height), height);
+      thoughtbubbleindex = 0;
+    }
+    tbx -= scrollSpeed;
+    if (tbx + height*(tb1.width/tb1.height < 0)) {
+      dtb = false;
+      builtTb = false;
+    }
+  }
 
   displayLights();
 
@@ -191,6 +221,7 @@ function displayUI() {
        text("Music", width * 0.025, height * 0.95);
      }
    }
+   text(phase, 10, 10);
 }
 
 function displayLights() {
@@ -250,6 +281,8 @@ function reset() {
   lr = new LivingRoom(0);
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
+
+  phase = 0;
 }
 
 class PartyGoer
@@ -325,14 +358,12 @@ class PartyGoer
       }
       avg /= 24;
 
-      console.log(avg);
-
       let h = map(avg, 0, 255, 0, height/20);
       this.dY += h;
     }
   }
 }
-
+ 
 class Creep extends PartyGoer
 {
   constructor(x, y, range, scale, sleepy) {
@@ -368,9 +399,18 @@ class LivingRoom
       this.x = trailX-scrollSpeed;
     } else if (this.x < width) {
       this.onscreen = true;
+      if (this.onscreen != this.prevOnscreen) {
+        phase++;
+        if (phase > 2) {
+          phase = 0;
+        }
+      }
     }
-    if (this.onscreen != this.prevOnscreen) {
 
+    if (phase == 2) {
+      for(let i = 0; i < this.pg.length; i++) {
+        this.pg[i].asleep = true;
+      }
     }
     this.prevOnscreen = this.onscreen;
   }
@@ -386,10 +426,12 @@ class LivingRoom
         this.pg[i].display();
       }
     pop();
+
+    // console.log(phase);
   }
 
   init() {
-    this.pg.push(new Creep(width/2, height*0.575, 0, 0.84, false));
+    this.pg.push(new Creep(width/2, height*0.575, 0, 0.85, false));
   }
 }
 
@@ -410,6 +452,12 @@ class Kitchen
     } else if (this.x < width) {
       this.onscreen = true;
     }
+
+    if (phase == 2 && !this.onscreen) {
+      for(let i = 0; i < this.pg.length; i++) {
+        this.pg[i].asleep = true;
+      }
+    }
   }
 
   display() {
@@ -417,6 +465,8 @@ class Kitchen
       image(kBg, this.x, 0, this.w, height);
     }
   }
+
+
 }
 
 class Hallway
@@ -426,6 +476,8 @@ class Hallway
     this.w = height * (hwBg.width/hwBg.height);
     this.onscreen = true;
     this.pg = []; // partygoer array
+    // this.displaythoughtbubble = false;
+    // this.thoughtbubbleindex = 0;
   }
 
   update(trailX) {
@@ -436,11 +488,39 @@ class Hallway
     } else if (this.x < width) {
       this.onscreen = true;
     }
+    this.displaythoughtbubble = false;
+
+    if (phase == 2 && !this.onscreen) {
+      // this.displaythoughtbubble = true;
+      console.log("yes");
+    }
   }
 
   display() {
     if (this.onscreen) {
       image(hwBg, this.x, 0, this.w, height);
     }
+    console.log(phase);
+    console.log(this.displaythoughtbubble);
+    push();
+      translate(this.x, 0);
+      for(let i = 0; i < this.pg.length; i++) {
+        this.pg[i].update();
+        this.pg[i].display();
+      }
+      // if (this.displaythoughtbubble = true) {
+      //   if (this.thoughtbubbleindex == 0) {
+      //     image(tb1, 0, 0, height*(tb1.width/tb1.height), height);
+      //     this.thoughtbubbleindex = 1;
+      //   } else {
+      //     image(tb1, 0, 0, height*(tb1.width/tb1.height), height);
+      //     this.thoughtbubbleindex = 0;
+      //   }
+        // this.thoughtbubbleindex++;
+        // if (this.thoughtbubbleindex > 1) {
+        //   this.thoughtbubbleindex = 0;
+        // }
+      // }
+    pop();
   }
 }
