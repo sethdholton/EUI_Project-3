@@ -16,30 +16,21 @@ let freqThreshold = 200;
 let spectrum, waveform; // spectrum and waveform
 let sLen;
 let wLen; // spectrum length and waveform length
-let thoughtbubbleindex = 0;
 
 // display
 let ratio = 1.6;
 let globeScale;
 
-// let displaythoughtbubble = false;
-let dtb = false;
-let tbx = 0;
-let builtTb = false;
+let tb;
 
 let turnSpeed;
 
 let scrollSpeed;
 
-let phase;
-
 // partygoers
 let partyGoers = [];
 let sf = []; // stick figure assets
 let crp = []; // creep assets
-
-// image assets
-let thoughtbubble;
 
 // room
 let lrBg, kBg, hwBg;
@@ -70,11 +61,9 @@ function setup() {
 
   frameRate(30);
 
-  scrollSpeed = width/500; // set scroll speed
+  scrollSpeed = width*0.0025; // set scroll speed
 
   sound.amp(.8); // set sound volume
-
-  phase = 0;
 
   // style
   textFont("Courier New");
@@ -83,6 +72,8 @@ function setup() {
   lr = new LivingRoom(0);
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
+
+  tb = new Thoughtbubble(0);
 
   noLoop();
 
@@ -99,30 +90,19 @@ function draw() {
     hw.update(k.x + k.w);
   }
 
-  lr.display();
-  k.display();
-  hw.display();
+  lr.displayBG();
+  k.displayBG();
+  hw.displayBG();
 
-  if (phase == 2 && !builtTb) {
-    dtb = true;
-    tbx = lr.x+k.w+(width/200);
-    builtTb = true;
-  }
+  lr.displayPG();
+  k.displayPG();
+  hw.displayPG();
 
-  if (dtb) {
-    if (thoughtbubbleindex == 0) {
-      image(tb1, tbx, 0, height*(tb1.width/tb1.height), height);
-      thoughtbubbleindex = 1;
-    } else {
-      image(tb1, tbx, 0, height*(tb1.width/tb1.height), height);
-      thoughtbubbleindex = 0;
-    }
-    tbx -= scrollSpeed;
-    if (tbx + height*(tb1.width/tb1.height < 0)) {
-      dtb = false;
-      builtTb = false;
-    }
-  }
+  // if (lr.phase == 2 && !builtTb) {
+  //   dtb = true;
+  //   tbx = lr.x+k.w+(width/200);
+  //   builtTb = true;
+  // }
 
   displayLights();
 
@@ -134,8 +114,7 @@ function draw() {
 
 
 function fitToScreen() {
-
-  if (window.innerWidth > window.innerHeight &&
+if (window.innerWidth > window.innerHeight &&
       window.innerHeight * ratio < window.innerWidth) { // width is bigger
     createCanvas(window.innerHeight * ratio, window.innerHeight);
 
@@ -152,9 +131,21 @@ function fitToScreen() {
     k.x = lr.w;
     hw.x = k.x + k.w;
 
-    lr.display();
-    k.display();
-    hw.display();
+    lr.pg = [];
+    k.pg = [];
+    hw.pg = [];
+
+    lr.init();
+    k.init();
+    hw.init();
+
+    lr.displayBG();
+    k.displayBG();
+    hw.displayBG();
+
+    lr.displayPG();
+    k.displayPG();
+    hw.displayPG();
 
     displayUI();
   }
@@ -220,8 +211,15 @@ function displayUI() {
      } else {
        text("Music", width * 0.025, height * 0.95);
      }
+     textSize(width/100);
+     text("living room: " + lr.phase, 10, 10);
+     text("kitchen: " + k.phase, 10, 30);
+     text("hallway: " + hw.phase, 10, 50);
    }
-   text(phase, 10, 10);
+  //  textSize(width/100);
+  //  text("living room: " + lr.phase, 10, 10);
+  //  text("kitchen: " + k.phase, 10, 20);
+  //  text("hallway: " + hw.phase, 10, 30);
 }
 
 function displayLights() {
@@ -242,6 +240,8 @@ function keyPressed() {
         mic = new p5.AudioIn();
         fft = new p5.FFT();
         mic.start();
+        fft.setInput(mic);
+        inputMic = true;
         startAudio = true;
       }
 
@@ -281,13 +281,11 @@ function reset() {
   lr = new LivingRoom(0);
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
-
-  phase = 0;
 }
 
 class PartyGoer
 {
-  constructor(anim, seq, rate, x, y, range, scale, sleepy) {
+  constructor(anim, seq, rate, x, y, scale, range, sleepy) {
     this.x = x;
     this.y = y;
     this.dY = y; // dance y
@@ -327,27 +325,12 @@ class PartyGoer
     this.w = height/2*this.scale;
     this.h = height/2*this.ratio*this.scale;
 
-    // for ( let i = 0; i < sLen; i++) {
-    //   h = map(spectrum[i], 0, 255, 0, height);
-    //   push();
-    //     translate(width/2, height/2.05);
-    //     rotate(millis()/25000);
-    //     push();
-    //       let r = map(i, 0, sLen, 0, TWO_PI);
-    //       rotate(r+(millis()/15000));
-    //       fill(420-h*0.5, h*0.5, 255);
-    //       noStroke();
-    //       ellipse(0, (h*0.095)+height/10, (h*50)/width, h*0.33);
-    //     pop();
-    //   pop();
-    // }
-
     this.dY = this.y
 
     this.dance();
     
     image(img, this.x, this.dY, this.w, this.h);
-  }
+  } 
 
   dance() {
     if (startAudio) {
@@ -366,17 +349,17 @@ class PartyGoer
  
 class Creep extends PartyGoer
 {
-  constructor(x, y, range, scale, sleepy) {
+  constructor(x, y, scale, range, sleepy) {
     let seq = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 0];
-    super(crp, seq, 4, x, y, range, scale, sleepy);
+    super(crp, seq, 4, x, y, scale, range, sleepy);
   }
 }
 
 class StickFigure extends PartyGoer
 {
-  constructor(x, y, range, scale, sleepy) {
+  constructor(x, y, scale, range, sleepy) {
     let seq = [0, 1];
-    super(sf, seq, 4, x, y, range, scale, sleepy);
+    super(sf, seq, 50, x, y, scale, range, sleepy);
   }
 }
 
@@ -386,8 +369,8 @@ class LivingRoom
     this.x = x;
     this.w = height * (lrBg.width/lrBg.height);
     this.onscreen = true;
-    this.prevOnscreen = true;
     this.pg = []; // partygoer array
+    this.phase = 0;
 
     this.init();
   }
@@ -397,41 +380,50 @@ class LivingRoom
     if (this.x + this.w < 0) {
       this.onscreen = false;
       this.x = trailX-scrollSpeed;
+      this.phase++;
+      if (this.phase > 2) {
+        this.phase = 0;
+      }
     } else if (this.x < width) {
       this.onscreen = true;
-      if (this.onscreen != this.prevOnscreen) {
-        phase++;
-        if (phase > 2) {
-          phase = 0;
+    }
+
+    if (this.phase == 1) {
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.pg[i].sleepy) {
+          this.pg[i].asleep = true;
         }
       }
     }
 
-    if (phase == 2) {
+    if (this.phase == 2) {
       for(let i = 0; i < this.pg.length; i++) {
         this.pg[i].asleep = true;
       }
     }
-    this.prevOnscreen = this.onscreen;
   }
 
-  display() {
+  displayBG() {
     if (this.onscreen) {
       image(lrBg, this.x, 0, this.w, height);
     }
+  }
+
+  displayPG() {
     push();
       translate(this.x, 0);
       for(let i = 0; i < this.pg.length; i++) {
-        this.pg[i].update();
-        this.pg[i].display();
+        if (this.x + this.pg[i].x + this.pg[i].w > 0) {
+          this.pg[i].update();
+          this.pg[i].display();
+        }
       }
     pop();
-
-    // console.log(phase);
   }
 
   init() {
-    this.pg.push(new Creep(width/2, height*0.575, 0, 0.85, false));
+    this.pg.push(new Creep(width*0.5, height*0.575, 0.85, 0, true));
+    this.pg.push(new StickFigure(width*0.5, height*0.55, 0.5, 500, true));
   }
 }
 
@@ -442,6 +434,9 @@ class Kitchen
     this.w = height * (kBg.width/kBg.height);
     this.onscreen = true;
     this.pg = []; // partygoer array
+    this.phase = 0;
+
+    this.init();
   }
 
   update(trailX) {
@@ -449,24 +444,42 @@ class Kitchen
     if (this.x + this.w < 0) {
       this.onscreen = false;
       this.x = trailX-scrollSpeed;
+      this.phase++;
+      if (this.phase > 2) {
+        this.phase = 0;
+      }
     } else if (this.x < width) {
       this.onscreen = true;
     }
 
-    if (phase == 2 && !this.onscreen) {
+    if (this.phase == 2 && !this.onscreen) {
       for(let i = 0; i < this.pg.length; i++) {
         this.pg[i].asleep = true;
       }
     }
   }
 
-  display() {
+  displayBG() {
     if (this.onscreen) {
       image(kBg, this.x, 0, this.w, height);
     }
   }
 
+  displayPG() {
+    push();
+      translate(this.x, 0);
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.x + this.pg[i].x + this.pg[i].w > 0) {
+          this.pg[i].update();
+          this.pg[i].display();
+        }
+      }
+    pop();
+  }
 
+  init() {
+    this.pg.push(new Creep(width/3 , height*0.575, 0.85, 0, false));
+  }
 }
 
 class Hallway
@@ -476,8 +489,9 @@ class Hallway
     this.w = height * (hwBg.width/hwBg.height);
     this.onscreen = true;
     this.pg = []; // partygoer array
-    // this.displaythoughtbubble = false;
-    // this.thoughtbubbleindex = 0;
+    this.phase = 0;
+
+    this.init();
   }
 
   update(trailX) {
@@ -485,42 +499,73 @@ class Hallway
     if (this.x + this.w < 0) {
       this.onscreen = false;
       this.x = trailX-scrollSpeed;
+      this.phase++;
+      if (this.phase > 2) {
+        this.phase = 0;
+      }
     } else if (this.x < width) {
       this.onscreen = true;
     }
-    this.displaythoughtbubble = false;
 
-    if (phase == 2 && !this.onscreen) {
-      // this.displaythoughtbubble = true;
-      console.log("yes");
+    if (this.phase == 2 && !this.onscreen) {
+
+      for(let i = 0; i < this.pg.length; i++) {
+        this.pg[i].asleep = true;
+      }
+      tb.update();
+    }
+  }
+
+  displayBG() {
+    if (this.onscreen) {
+      image(hwBg, this.x, 0, this.w, height);
+    }
+  }
+
+  displayPG() {
+    push();
+      translate(this.x, 0);
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.x + this.pg[i].x + this.pg[i].w > 0) {
+          this.pg[i].update();
+          this.pg[i].display();
+        }
+      }
+    pop();
+
+    if (this.phase == 2) {
+      tb.update();
+      tb.display();
+    }
+  }
+
+  init() {
+    this.pg.push(new Creep(width/3, height*0.575, 0.85, 0, false));
+  }
+}
+
+class Thoughtbubble{
+  constructor(x) {
+    this.x;
+    this.index = 0;
+    this.rate = 5;
+    this.ratio = tb1.width/tb1.height;
+  }
+  
+  update() {
+    if (frameCount % this.rate == 0) {
+      this.index++;
+      if (this.index > 1) {
+        this.index = 0;
+      }
     }
   }
 
   display() {
-    if (this.onscreen) {
-      image(hwBg, this.x, 0, this.w, height);
+    if (this.index == 0) {
+      image(tb1, this.x, 0, height*ratio, height);
+    } else {
+      image(tb2, this.x, 0, height*ratio, height);
     }
-    console.log(phase);
-    console.log(this.displaythoughtbubble);
-    push();
-      translate(this.x, 0);
-      for(let i = 0; i < this.pg.length; i++) {
-        this.pg[i].update();
-        this.pg[i].display();
-      }
-      // if (this.displaythoughtbubble = true) {
-      //   if (this.thoughtbubbleindex == 0) {
-      //     image(tb1, 0, 0, height*(tb1.width/tb1.height), height);
-      //     this.thoughtbubbleindex = 1;
-      //   } else {
-      //     image(tb1, 0, 0, height*(tb1.width/tb1.height), height);
-      //     this.thoughtbubbleindex = 0;
-      //   }
-        // this.thoughtbubbleindex++;
-        // if (this.thoughtbubbleindex > 1) {
-        //   this.thoughtbubbleindex = 0;
-        // }
-      // }
-    pop();
   }
 }
