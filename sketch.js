@@ -480,6 +480,7 @@ class LivingRoom
         }
       }
     pop();
+    console.log(this.x + this.pg[2].x + this.pg[2].w > 0);
   }
 
   init() {
