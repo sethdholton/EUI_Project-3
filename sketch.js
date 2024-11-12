@@ -31,6 +31,7 @@ let scrollSpeed;
 let partyGoers = [];
 let sf = []; // stick figure assets
 let crp = []; // creep assets
+let bear = []; // bear assets
 
 // room
 let lrBg, kBg, hwBg;
@@ -110,7 +111,6 @@ function draw() {
 
 
 }
-
 
 
 function fitToScreen() {
@@ -194,6 +194,11 @@ function loadPartyGoerAssets() {
   // creep
   for (let i = 0; i < 4; i++) {
     crp[i] = loadImage("./assets/partygoers/creep/" + i + ".png");
+  }
+
+  // bear
+  for (let i = 0; i < 3; i++) {
+    bear[i] = loadImage("./assets/partygoers/bear/" + i + ".png");
   }
 }
 
@@ -346,7 +351,7 @@ class PartyGoer
     }
   }
 }
- 
+
 class Creep extends PartyGoer
 {
   constructor(x, y, scale, range, sleepy) {
@@ -360,6 +365,14 @@ class StickFigure extends PartyGoer
   constructor(x, y, scale, range, sleepy) {
     let seq = [0, 1];
     super(sf, seq, 50, x, y, scale, range, sleepy);
+  }
+}
+
+class Bear extends PartyGoer
+{
+  constructor(x, y, scale, range, sleepy) {
+    let seq = [0, 1];
+    super(bear, seq, 5, x, y, scale, range, sleepy);
   }
 }
 
@@ -424,6 +437,7 @@ class LivingRoom
   init() {
     this.pg.push(new Creep(width*0.5, height*0.575, 0.85, 0, true));
     this.pg.push(new StickFigure(width*0.5, height*0.55, 0.5, 500, true));
+    this.pg.push(new Bear(width*0.2, height*0.3, 0, 250, false));
   }
 }
 
