@@ -65,7 +65,7 @@ function setup() {
 
   frameRate(30);
 
-  scrollSpeed = width*0.0025; // set scroll speed
+  scrollSpeed = width*0.005; // set scroll speed
 
   sound.amp(.8); // set sound volume
 
@@ -77,7 +77,7 @@ function setup() {
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
 
-  tb = new Thoughtbubble(0);
+  tb = new Thoughtbubble();
 
   noLoop();
 
@@ -92,6 +92,8 @@ function draw() {
     lr.update(hw.x + hw.w);
     k.update(lr.x + lr.w);
     hw.update(k.x + k.w);
+
+    tb.update();
   }
 
   lr.displayBG();
@@ -102,17 +104,13 @@ function draw() {
   k.displayPG();
   hw.displayPG();
 
-  // if (lr.phase == 2 && !builtTb) {
-  //   dtb = true;
-  //   tbx = lr.x+k.w+(width/200);
-  //   builtTb = true;
-  // }
+  if (hw.phase == 2) {
+    tb.display(hw.x + hw.w - tb.w + (width*0.151));
+  }
 
   displayLights();
 
   displayUI();
-
-
 }
 
 
@@ -308,15 +306,17 @@ function reset() {
 
 class PartyGoer
 {
-  constructor(anim, seq, rate, x, y, scale, range, sleepy) {
-    this.x = x;
-    this.y = y;
+  constructor(anim, seq, rate, x, y, scale, range, tired, sleepX, sleepY) {
+    this.x = width * (x / 100);
+    this.y = height * (y / 100);
     this.dY = y; // dance y
+    this.sleepX = width * (sleepX / 100); // x coordinate while asleep
+    this.sleepY = height * (sleepY / 100); // y coordinate while asleep
     this.scale = scale;
     this.onscreen = true;
     this.range = range; // spectrum frequency range
     this.asleep = false; // whether or not they're asleep
-    this.sleepy = sleepy; // whether or not they fall asleep early
+    this.tired = tired; // whether or not they fall asleep early
     this.anim = anim; // frame array
     this.ratio = this.anim[0].width/this.anim[0].height;
     this.w = height/2*this.scale;
@@ -327,7 +327,7 @@ class PartyGoer
   }
   
   update() {
-    if (frameCount % this.rate == 0) {
+    if (frameCount % this.rate == 0) { // animate sprite
       this.animIndex++;
       if (this.animIndex >= this.seq.length) {
         this.animIndex = 0;
@@ -339,84 +339,88 @@ class PartyGoer
     let img;
     if (!this.asleep) {
       img = this.anim[this.seq[this.animIndex]];
+
+      this.ratio = img.width/img.height;
+
+      this.w = height/2*this.scale;
+      this.h = height/2*this.ratio*this.scale;
+
+      this.dY = this.y
+      this.dance();
+
+      image(img, this.x, this.dY, this.w, this.h);
     } else {
       img = this.anim[this.anim.length-1];
+
+      this.ratio = img.width/img.height;
+
+      this.w = height/2*this.scale;
+      this.h = height/2*this.ratio*this.scale;
+
+      image(img, this.sleepX, this.sleepY, this.w, this.h)
     }
-
-    this.ratio = img.width/img.height;
-
-    this.w = height/2*this.scale;
-    this.h = height/2*this.ratio*this.scale;
-
-    this.dY = this.y
-
-    this.dance();
-    
-    image(img, this.x, this.dY, this.w, this.h);
   } 
 
   dance() {
-    if (startAudio) {
-      if (!this.asleep) {
-        spectrum = fft.analyze();
-        let avg = 0;
-        for (let i = 0; i < 24; i++) {
-          avg += spectrum[this.range + i];
-        }
-        avg /= 24;
-
-        let h = map(avg, 0, 255, 0, this.h*0.15);
-        this.dY += h;
+  if (startAudio) {
+      spectrum = fft.analyze();
+      let avg = 0;
+      for (let i = 0; i < 24; i++) {
+        avg += spectrum[this.range + i];
       }
+      avg /= 24;
+
+      let h = map(avg, 0, 255, 0, this.h*0.15);
+      this.dY += h;
     }
   }
 }
 
 class Creep extends PartyGoer
 {
-  constructor(x, y, scale, range, sleepy) {
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
     let seq = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 0];
-    super(crp, seq, 4, x, y, scale, range, sleepy);
+    super(crp, seq, 4, x, y, scale, range, tired, sleepX, sleepY);
   }
 }
 
 class StickFigure extends PartyGoer
 {
-  constructor(x, y, scale, range, sleepy) {
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
     let seq = [0, 1];
-    super(sf, seq, 50, x, y, scale, range, sleepy);
+    super(sf, seq, 50, x, y, scale, range, tired, sleepX, sleepY);
   }
 }
 
 class Bear extends PartyGoer
 {
-  constructor(x, y, scale, range, sleepy) {
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
     let seq = [0, 1];
-    super(bear, seq, 10, x, y, scale, range, sleepy);
+    super(bear, seq, 10, x, y, scale, range, tired, sleepX, sleepY);
   }
 }
 
 class Leopard extends PartyGoer
 {
-  constructor(x, y, scale, range, sleepy) {
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
     let seq = [0, 1];
-    super(leop, seq, 11, x, y, scale, range, sleepy);
+    super(leop, seq, 11, x, y, scale, range, tired, sleepX, sleepY);
   }
 }
 
 class Wolf1 extends PartyGoer
 {
-  constructor(x, y, scale, range, sleepy) {
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
     let seq = [0, 1];
-    super(wolf1, seq, 20, x, y, scale, range, sleepy);
+    super(wolf1, seq, 20, x, y, scale, range, tired, sleepX, sleepY);
   }
 }
 
 class Wolf2 extends PartyGoer
 {
-  constructor(x, y, scale, range, sleepy) {
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
     let seq = [0, 1];
-    super(wolf2, seq, 23, x, y, scale, range, sleepy);
+    super(wolf2, seq, 23, x, y, scale, range, tired, sleepX, sleepY);
   }
 }
 
@@ -451,7 +455,7 @@ class LivingRoom
 
     if (this.phase == 1) {
       for(let i = 0; i < this.pg.length; i++) {
-        if (this.pg[i].sleepy) {
+        if (this.pg[i].tired) {
           this.pg[i].asleep = true;
         }
       }
@@ -480,16 +484,12 @@ class LivingRoom
         }
       }
     pop();
-    console.log(this.x + this.pg[2].x + this.pg[2].w > 0);
   }
 
   init() {
-    this.pg.push(new Wolf1(width*0.43, height*0.5, 0.7, 800, false));
-    this.pg.push(new Leopard(width*0.5, height*0.5, 1, 700, false));
-    this.pg.push(new Creep(width*0.5, height*0.575, 0.85, 0, true));
-    this.pg.push(new Bear(width*0.155, height*0.45, 0.8, 250, false));
-    this.pg.push(new StickFigure(width*0.35, height*0.55, 0.4, 500, true));
-    this.pg.push(new Wolf2(width*0.3, height*0.55, 1, 300, false));
+    this.pg.push(new Wolf1(47, 42, 0.8, 800, true, 46, 59));
+    this.pg.push(new StickFigure(37, 51, 0.3, 1000, false, 37, 51));
+    this.pg.push(new Creep(15, 65, 0.7, 0, false, 15, 65));
   }
 }
 
@@ -513,12 +513,23 @@ class Kitchen
       this.phase++;
       if (this.phase > 2) {
         this.phase = 0;
+        for(let i = 0; i < this.pg.length; i++) {
+          this.pg[i].asleep=false;
+        }
       }
     } else if (this.x < width) {
       this.onscreen = true;
     }
 
-    if (this.phase == 2 && !this.onscreen) {
+    if (this.phase == 1) {
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.pg[i].tired) {
+          this.pg[i].asleep = true;
+        }
+      }
+    }
+
+    if (this.phase == 2) {
       for(let i = 0; i < this.pg.length; i++) {
         this.pg[i].asleep = true;
       }
@@ -535,7 +546,7 @@ class Kitchen
     push();
       translate(this.x, 0);
       for(let i = 0; i < this.pg.length; i++) {
-        if (this.x + this.pg[i].x + this.pg[i].w > 0) {
+        if (this.x + this.pg[i].x + this.pg[i].w > 0 - (width*0.16)) {
           this.pg[i].update();
           this.pg[i].display();
         }
@@ -544,7 +555,9 @@ class Kitchen
   }
 
   init() {
-    this.pg.push(new Creep(width/3 , height*0.575, 0.85, 0, false));
+    this.pg.push(new Wolf2(45, 65, 0.8, 500, true, -2, 13));
+    this.pg.push(new StickFigure(64, 41, 0.3, 30, true, 28, 32.5));
+    this.pg.push(new Leopard(26, 65, 0.95, 300, false, 45.5, 27));
   }
 }
 
@@ -568,9 +581,20 @@ class Hallway
       this.phase++;
       if (this.phase > 2) {
         this.phase = 0;
+        for(let i = 0; i < this.pg.length; i++) {
+          this.pg[i].asleep=false;
+        }
       }
     } else if (this.x < width) {
       this.onscreen = true;
+    }
+
+    if (this.phase == 1) {
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.pg[i].tired) {
+          this.pg[i].asleep = true;
+        }
+      }
     }
 
     if (this.phase == 2 && !this.onscreen) {
@@ -597,24 +621,21 @@ class Hallway
           this.pg[i].display();
         }
       }
-      if (this.phase == 2) {
-        tb.update();
-        tb.display();
-      }
     pop();
   }
 
   init() {
-    this.pg.push(new Creep(width/3, height*0.575, 0.85, 0, false));
+    this.pg.push(new Bear(20, 50, 0.7, 650, true, 10, 50));
   }
 }
 
 class Thoughtbubble{
-  constructor(x) {
-    this.x = x;
+  constructor() {
+    this.x = 0;
     this.index = 0;
     this.rate = 15;
     this.ratio = tb1.width/tb1.height;
+    this.w = height*this.ratio;
   }
   
   update() {
@@ -626,11 +647,12 @@ class Thoughtbubble{
     }
   }
 
-  display() {
+  display(x) {
+    this.x = x;
     if (this.index == 0) {
-      image(tb1, this.x, 0, height*this.ratio, height);
+      image(tb1, this.x, 0, this.w, height);
     } else {
-      image(tb2, this.x, 0, height*this.ratio, height);
+      image(tb2, this.x, 0, this.w, height);
     }
   }
 }
