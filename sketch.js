@@ -31,6 +31,9 @@ let scrollSpeed;
 let partyGoers = [];
 let sf = []; // stick figure assets
 let crp = []; // creep assets
+let head = []; // head assets
+let bat = []; // bat assets
+
 let bear = []; // bear assets
 let leop = []; // leopard assets
 let wolf1 = []; // wolf 1 assets
@@ -65,7 +68,8 @@ function setup() {
 
   frameRate(30);
 
-  scrollSpeed = width*0.005; // set scroll speed
+  scrollSpeed = width*0.0025; // set scroll speed
+  // scrollSpeed = width*0.005
 
   sound.amp(.8); // set sound volume
 
@@ -187,34 +191,27 @@ function updateAudio() {
 }
 
 function loadPartyGoerAssets() {
+  for (let i = 0; i < 3; i++) { // 2-frame animations
+    // mark assets
+    bear[i] = loadImage("./assets/partygoers/bear/" + i + ".png"); // bear
+    leop[i] = loadImage("./assets/partygoers/leopard/" + i + ".png"); // leopard
+    wolf1[i] = loadImage("./assets/partygoers/wolf/" + i + ".png"); // wolf 1
+    wolf2[i] = loadImage("./assets/partygoers/wolf/" + (i+3) + ".png"); // wolf 2
 
-  // stick figure
-  for (let i = 0; i < 3; i++) {
-    sf[i] = loadImage("./assets/partygoers/stick-figure/" + i + ".png");
+    // seth assets
+    sf[i] = loadImage("./assets/partygoers/stick-figure/" + i + ".png"); // stick figure
   }
 
-  // creep
-  for (let i = 0; i < 4; i++) {
-    crp[i] = loadImage("./assets/partygoers/creep/" + i + ".png");
+  for (let i = 0; i < 4; i++) { // 3-frame animations
+    crp[i] = loadImage("./assets/partygoers/creep/" + i + ".png"); // creep
   }
 
-  // bear
-  for (let i = 0; i < 3; i++) {
-    bear[i] = loadImage("./assets/partygoers/bear/" + i + ".png");
+  for (let i = 0; i < 5; i++) { // 4-frame animation
+    head[i] = loadImage("./assets/partygoers/head/" + i + ".png"); // head
   }
 
-  // leopard
-  for (let i = 0; i < 3; i++) {
-    leop[i] = loadImage("./assets/partygoers/leopard/" + i + ".png");
-  }
-
-  // wolf 1
-  for (let i = 0; i < 3; i++) {
-    wolf1[i] = loadImage("./assets/partygoers/wolf/" + i + ".png"); 
-  }
-
-  for (let i = 0; i < 3; i++) {
-    wolf2[i] = loadImage("./assets/partygoers/wolf/" + (i+3) + ".png");
+  for (let i = 0; i < 6; i++) { // 5-frame animation
+    bat[i] = loadImage("./assets/partygoers/bat/" + i + ".png"); // bat
   }
 }
 
@@ -392,6 +389,22 @@ class StickFigure extends PartyGoer
   }
 }
 
+class Head extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1, 2, 3, 2, 1];
+    super(head, seq, 5, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Bat extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1, 2, 3, 4, 2];
+    super(bat, seq, 4, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
 class Bear extends PartyGoer
 {
   constructor(x, y, scale, range, tired, sleepX, sleepY) {
@@ -558,6 +571,7 @@ class Kitchen
     this.pg.push(new Wolf2(45, 65, 0.8, 500, true, -2, 13));
     this.pg.push(new StickFigure(64, 41, 0.3, 30, true, 28, 32.5));
     this.pg.push(new Leopard(26, 65, 0.95, 300, false, 45.5, 27));
+    this.pg.push(new Head(20, 73, 0.6, 40, false, 20, 73));
   }
 }
 
@@ -626,6 +640,8 @@ class Hallway
 
   init() {
     this.pg.push(new Bear(20, 50, 0.7, 650, true, 10, 50));
+    this.pg.push(new Creep(-5, 50, 1, 20, false, -5, 50));
+    this.pg.push(new Bat(10, 7, 0.7, 25, true, 10, 7));
   }
 }
 
