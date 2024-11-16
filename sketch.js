@@ -229,15 +229,11 @@ function displayUI() {
      } else {
        text("Music", width * 0.025, height * 0.95);
      }
-     textSize(width/100);
-     text("living room: " + lr.phase, 10, 10);
-     text("kitchen: " + k.phase, 10, 30);
-     text("hallway: " + hw.phase, 10, 50);
+    //  textSize(width/100);
+    //  text("living room: " + lr.phase, 10, 10);
+    //  text("kitchen: " + k.phase, 10, 30);
+    //  text("hallway: " + hw.phase, 10, 50);
    }
-  //  textSize(width/100);
-  //  text("living room: " + lr.phase, 10, 10);
-  //  text("kitchen: " + k.phase, 10, 20);
-  //  text("hallway: " + hw.phase, 10, 30);
 }
 
 function displayLights() {
