@@ -16,6 +16,10 @@ let freqThreshold = 200;
 let spectrum, waveform; // spectrum and waveform
 let sLen;
 let wLen; // spectrum length and waveform length
+let vol; // volume level
+let normVol; // normalized volume level
+let volSense = 15; // volume sensitivity
+let senseStep = 1; // slider interval
 
 // display
 let ratio = 1.6;
@@ -163,24 +167,27 @@ function windowResized() {
 
 function updateAudio() {
 
-  bass = fft.getEnergy("bass");
-  lowMid = fft.getEnergy("lowMid");
-  mid = fft.getEnergy("mid");
-  highMid = fft.getEnergy("highMid");
-  treble = fft.getEnergy("treble");
+  // bass = fft.getEnergy("bass");
+  // lowMid = fft.getEnergy("lowMid");
+  // mid = fft.getEnergy("mid");
+  // highMid = fft.getEnergy("highMid");
+  // treble = fft.getEnergy("treble");
 
-  soundAvg = (bass + lowMid + mid + highMid + treble) / 5;
-  turnSpeed = map(soundAvg, 0, 255, .0000000000000001,.000005);
+  // soundAvg = (bass + lowMid + mid + highMid + treble) / 5;
+  // turnSpeed = map(soundAvg, 0, 255, .0000000000000001,.000005);
 
-  fft.analyze();
-  bassEnergy = fft.getEnergy("bass");
+  // fft.analyze();
+  // bassEnergy = fft.getEnergy("bass");
 
-  if (bassEnergy > freqThreshold && millis() - lastBeatTime > beatInterval * 0.8) {
-    for(let i = 0; i < partyGoers.length; i++) {
-      partyGoers[i].update();
-    }
-    lastBeatTime = millis();
-  }
+  // if (bassEnergy > freqThreshold && millis() - lastBeatTime > beatInterval * 0.8) {
+  //   for(let i = 0; i < partyGoers.length; i++) {
+  //     partyGoers[i].update();
+  //   }
+  //   lastBeatTime = millis();
+  // }
+
+  // vol = mic.getLevel(); // get volume level
+  // normVol = vol * volSense; // normalize volume
   
   spectrum = fft.analyze();
   sLen = Math.floor(spectrum.length);
@@ -220,7 +227,9 @@ function displayUI() {
   if (stopped) {
     textAlign(CENTER, CENTER);
     textSize(width/20);
-    text("PRESS 'SPACE' TO START", width/2, height/2);
+    text("PRESS 'SPACE' TO START", width/2, height*0.45);
+    textSize(width/33);
+    text("PRESS 'F' AND 'J' TO ADJUST SENSITIVITY", width/2, height*0.55);
   } else {
      textAlign(LEFT, CENTER);
      textSize(width/100);
@@ -229,10 +238,6 @@ function displayUI() {
      } else {
        text("Music", width * 0.025, height * 0.95);
      }
-    //  textSize(width/100);
-    //  text("living room: " + lr.phase, 10, 10);
-    //  text("kitchen: " + k.phase, 10, 30);
-    //  text("hallway: " + hw.phase, 10, 50);
    }
 }
 
@@ -363,8 +368,8 @@ class PartyGoer
       }
       avg /= 24;
 
-      let h = map(avg, 0, 255, 0, this.h*0.15);
-      this.dY += h;
+      let d = map(avg, 0, 255, 0, this.h*(volSense/100));
+      this.dY += d;
     }
   }
 }
