@@ -138,21 +138,23 @@ if (window.innerWidth > window.innerHeight &&
   }
 
   if(setupFinished) {
-    lr.w = height * (lrBg.width/lrBg.height);
-    k.w = height * (kBg.width/kBg.height);
-    hw.w = height * (hwBg.width/hwBg.height);
+    // lr.w = height * (lrBg.width/lrBg.height);
+    // k.w = height * (kBg.width/kBg.height);
+    // hw.w = height * (hwBg.width/hwBg.height);
     
-    lr.x = 0;
-    k.x = lr.w;
-    hw.x = k.x + k.w;
+    // lr.x = 0;
+    // k.x = lr.w;
+    // hw.x = k.x + k.w;
 
-    lr.pg = [];
-    k.pg = [];
-    hw.pg = [];
+    // lr.pg = [];
+    // k.pg = [];
+    // hw.pg = [];
 
-    lr.init();
-    k.init();
-    hw.init();
+    // lr.init();
+    // k.init();
+    // hw.init();
+
+    reset();
 
     lr.displayBG();
     k.displayBG();
@@ -164,7 +166,7 @@ if (window.innerWidth > window.innerHeight &&
 
     displayUI();
 
-    scrollSpeed = width*0.004
+    // scrollSpeed = width*0.004
   }
 }
 
