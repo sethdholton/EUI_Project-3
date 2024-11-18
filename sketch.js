@@ -8,7 +8,6 @@ let startAudio = false;
 let inputMic = false;
 let bass, lowMid, mid, highMid, treble;
 let soundAvg;
-let sf = [];
 let bassEnergy;
 let lastBeatTime = 0;
 let bpm = 120;
@@ -17,28 +16,43 @@ let freqThreshold = 200;
 let spectrum, waveform; // spectrum and waveform
 let sLen;
 let wLen; // spectrum length and waveform length
+let vol; // volume level
+let normVol; // normalized volume level
+let volSense = 25; // volume sensitivity
+let senseStep = 1; // slider interval
+let senseMax = 100;
 
 // display
-let camX = 0;
 let ratio = 1.6;
 let globeScale;
 
-let displaythoughtbubble = false;
+let tb;
 
 let turnSpeed;
 
 let scrollSpeed;
 
-// partygoer
-let displace;
-let tempDisplace = 0;
+let lightHue = 30;
+let lightOpac = 10;
+let lightBright = 10;
 
-let sf1, sf2, sfAsleep, thoughtbubble; // image assets
+// sensitivity bar
+let sBar_isVisible = false;
+let sBar_h; // sensitivity bar height
+let sBar_opac;
 
+// partygoers
 let partyGoers = [];
+let sf = []; // stick figure assets
+let crp = []; // creep assets
+let head = []; // head assets
+let bat = []; // bat assets
+let guy = []; // guy assets
 
-let spawnInterval = 0;
-let phase = 0;
+let bear = []; // bear assets
+let leop = []; // leopard assets
+let wolf1 = []; // wolf 1 assets
+let wolf2 = []; // wolf 2 assets
 
 // room
 let lrBg, kBg, hwBg;
@@ -50,57 +64,39 @@ let setupFinished = false;
 
 
 function preload() {
-  // audio assets
-  sound = loadSound('/assets/i-81-car-pileup.mp3');
 
-  // img assets
-  sfAsleep = loadImage('/assets/sfAsleep.png');
-  for (let i = 0; i < 2; i++) {
-    sf[i] = loadImage("/assets/sf/" + i + ".png");
-  }
-  lrBg = loadImage("/assets/bg/Living_room_cropped.png");
-  kBg = loadImage("/assets/bg/Kitchen_cropped2.png");
-  hwBg = loadImage("/assets/bg/Hallway_cropped2.png");
-  thoughtbubble = loadImage("/assets/thoughtbubble.png");
+  // audio assets
+  sound = loadSound('./assets/i-81-car-pileup.mp3');
+
+  // image assets
+  loadPartyGoerAssets();
+  lrBg = loadImage("./assets/bg/Living_room_cropped.png");
+  kBg = loadImage("./assets/bg/Kitchen_cropped2.png");
+  hwBg = loadImage("./assets/bg/Hallway_cropped2.png");
+  tb1 = loadImage("./assets/thoughtbubble/0.png");
+  tb2 = loadImage("./assets/thoughtbubble/1.png");
 }
 
-
-
 function setup() {
+// display
   fitToScreen();
-
-  scrollSpeed = width/500;
-
-  sound.amp(.8);
-  colorMode(RGB);
+  frameRate(30);
+  // scrollSpeed = width*0.0025; // set scroll speed
+  sBar_h = width/250;
   textFont("Courier New");
-  background(0);
+  colorMode(HSB, 360, 100, 100, 100);
 
-  // background
-  partyGoers.push(new PartyGoer(width*1.3, height/2, 3, false));
-  partyGoers.push(new PartyGoer(width*0.95, height/2, 3, false));
-  partyGoers.push(new PartyGoer(width * 1.5, height/2, 3, false));
-  partyGoers.push(new PartyGoer(width * 2.1, height/2, 3, false));
-  partyGoers.push(new PartyGoer(width * 2.4, height/2, 3, false));
-  
-  // foreground
-  partyGoers.push(new PartyGoer(width*0.5, height/2, 4, false));
-  partyGoers.push(new PartyGoer(width, height/2, 4, false));
-  partyGoers.push(new PartyGoer(width * 1.3, height/2, 4, false));
-  partyGoers.push(new PartyGoer(width * 1.7, height/2, 4, false));
+  reset();
 
-  // spawnNewPartyGoers();
-  
-  lr = new LivingRoom(0);
-  k = new Kitchen(lr.w);
-  hw = new Hallway(lr.w + k.w);
+  // audio
+  sound.amp(.8); // set sound volume
 
-  colorMode(HSB);
+  noLoop();
+
   setupFinished = true;
 }
 
 function draw() {
-  background(200);
 
   if (startAudio) {
     updateAudio();
@@ -108,69 +104,67 @@ function draw() {
     lr.update(hw.x + hw.w);
     k.update(lr.x + lr.w);
     hw.update(k.x + k.w);
+
+    tb.update();
+    updateLights();
   }
 
-  lr.display();
-  k.display();
-  hw.display();
+  lr.displayBG();
+  k.displayBG();
+  hw.displayBG();
+
+  lr.displayPG();
+  k.displayPG();
+  hw.displayPG();
+
+  if (hw.phase == 2) {
+    tb.display(hw.x + hw.w - tb.w + (width*0.151));
+  }
 
   displayLights();
 
   displayUI();
 }
 
-// function draw() {
-//     background(200);
 
-//     noStroke();
-//     fill(100);
-//     rect(0, height*0.6, width, height*0.4);
-
-//     displace = (camX*-1) + (width);
-
-//     if (startAudio) {
-//       updateAudio();
-//       // updateVisuals();
-
-//       push();
-//         translate(camX, 0);
-//         displayScene();
-//         if (displaythoughtbubble) {
-//           strokeWeight(4);
-//           stroke(0);
-//           fill(255);
-//           // circle(width*0.3 + tempDisplace, height*0.7, width*0.01);
-//           circle(width*0.45 + tempDisplace, height*0.6, width*0.01);
-//           circle(width*0.6 + tempDisplace, height*0.55, width*0.02);
-//           circle(width*0.9 + tempDisplace, height*0.5, width*0.05);
-//           image(thoughtbubble, width*0.9 + tempDisplace, 0, thoughtbubble.width*1.54, thoughtbubble.height*1.54);
-//         }
-    
-//       pop();
-
-//       camX--;
-//       if (camX % width == 0) {
-//         spawnNewPartyGoers();
-//         phase++;
-//         console.log("yes");
-//       }
-//     }
-
-//     displayUI();
-//     spawnInterval++;
-
-//     lr.display();
-//     k.display();
-// }
 
 function fitToScreen() {
-  let w_, h_;
-  if (window.innerWidth > window.innerHeight &&
+if (window.innerWidth > window.innerHeight &&
       window.innerHeight * ratio < window.innerWidth) { // width is bigger
     createCanvas(window.innerHeight * ratio, window.innerHeight);
 
   } else { // height is bigger
     createCanvas(window.innerWidth, window.innerWidth / ratio);
+  }
+
+  if(setupFinished) {
+    lr.w = height * (lrBg.width/lrBg.height);
+    k.w = height * (kBg.width/kBg.height);
+    hw.w = height * (hwBg.width/hwBg.height);
+    
+    lr.x = 0;
+    k.x = lr.w;
+    hw.x = k.x + k.w;
+
+    lr.pg = [];
+    k.pg = [];
+    hw.pg = [];
+
+    lr.init();
+    k.init();
+    hw.init();
+
+    lr.displayBG();
+    k.displayBG();
+    hw.displayBG();
+
+    lr.displayPG();
+    k.displayPG();
+    hw.displayPG();
+
+    displayUI();
+
+    scrollSpeed = width*0.004
   }
 }
 
@@ -180,111 +174,127 @@ function windowResized() {
 
 function updateAudio() {
 
-  bass = fft.getEnergy("bass");
-  lowMid = fft.getEnergy("lowMid");
-  mid = fft.getEnergy("mid");
-  highMid = fft.getEnergy("highMid");
-  treble = fft.getEnergy("treble");
+  // bass = fft.getEnergy("bass");
+  // lowMid = fft.getEnergy("lowMid");
+  // mid = fft.getEnergy("mid");
+  // highMid = fft.getEnergy("highMid");
+  // treble = fft.getEnergy("treble");
 
-  soundAvg = (bass + lowMid + mid + highMid + treble) / 5;
-  turnSpeed = map(soundAvg, 0, 255, .0000000000000001,.000005);
+  // soundAvg = (bass + lowMid + mid + highMid + treble) / 5;
+  // turnSpeed = map(soundAvg, 0, 255, .0000000000000001,.000005);
 
-  fft.analyze();
-  bassEnergy = fft.getEnergy("bass");
+  // fft.analyze();
+  // bassEnergy = fft.getEnergy("bass");
 
-  // console.log("Bass Energy: ", bassEnergy);
+  // if (bassEnergy > freqThreshold && millis() - lastBeatTime > beatInterval * 0.8) {
+  //   for(let i = 0; i < partyGoers.length; i++) {
+  //     partyGoers[i].update();
+  //   }
+  //   lastBeatTime = millis();
+  // }
 
-  if (bassEnergy > freqThreshold && millis() - lastBeatTime > beatInterval * 0.8) {
-    for(let i = 0; i < partyGoers.length; i++) {
-      partyGoers[i].anim();
-    }
-    lastBeatTime = millis();
-    // console.log("Beat detected!");
-  }
-
-  let timeSinceLastBeat = millis() - lastBeatTime;
-  let speedC = map(timeSinceLastBeat, 0, beatInterval, 0, width);
+  // vol = mic.getLevel(); // get volume level
+  // normVol = vol * volSense; // normalize volume
+  
   spectrum = fft.analyze();
   sLen = Math.floor(spectrum.length);
-  // sLen = spectrum.length;
 
   waveform = fft.waveform();
   wLen = waveform.length;
 
 }
 
-function displayScene() {
-  for (let i = 0; i < partyGoers.length; i++) {
-    partyGoers[i].display();
-  }
-}
+function loadPartyGoerAssets() {
+  for (let i = 0; i < 3; i++) { // 2-frame animations
+    // mark assets
+    bear[i] = loadImage("./assets/partygoers/bear/" + i + ".png"); // bear
+    leop[i] = loadImage("./assets/partygoers/leopard/" + i + ".png"); // leopard
+    wolf1[i] = loadImage("./assets/partygoers/wolf/" + i + ".png"); // wolf 1
+    wolf2[i] = loadImage("./assets/partygoers/wolf/" + (i+3) + ".png"); // wolf 2
 
-function spawnNewPartyGoers() {
-  if (phase == 0) {
-    // background
-    partyGoers.push(new PartyGoer(width*1.3 + displace, height/2, 3, false));
-    partyGoers.push(new PartyGoer(width*0.95 + displace, height/2, 3, false));
-    // foreground
-    partyGoers.push(new PartyGoer(width*0.5 + displace, height/2, 4, false));
-    partyGoers.push(new PartyGoer(width + displace, height/2, 4, false));
-  } else if (phase == 1) {
-    partyGoers.push(new PartyGoer(width*1.3 + displace, height/2, 3, false));
-    partyGoers.push(new PartyGoer(width*0.95 + displace, height/2, 3, true));
-    // foreground
-    partyGoers.push(new PartyGoer(width*0.5 + displace, height/2, 4, false));
-    partyGoers.push(new PartyGoer(width + displace, height/2, 4, false));
-    displaythoughtbubble = false;
-  } else if (phase == 2) {
-    partyGoers.push(new PartyGoer(width*1.3 + displace, height/2, 3, true));
-    partyGoers.push(new PartyGoer(width*0.95 + displace, height/2, 3, true));
-    // foreground
-    partyGoers.push(new PartyGoer(width*0.5 + displace, height/2, 4, true));
-    partyGoers.push(new PartyGoer(width + displace, height/2, 4, true));
-    displaythoughtbubble = true;
-  } else if (phase == 3) {
-    tempDisplace = displace;
-    phase = -1;
+    // seth assets
+    sf[i] = loadImage("./assets/partygoers/stick-figure/" + i + ".png"); // stick figure
+  }
+
+  for (let i = 0; i < 4; i++) { // 3-frame animations
+    crp[i] = loadImage("./assets/partygoers/creep/" + i + ".png"); // creep
+  }
+
+  for (let i = 0; i < 5; i++) { // 4-frame animation
+    head[i] = loadImage("./assets/partygoers/head/" + i + ".png"); // head
+  }
+
+  for (let i = 0; i < 6; i++) { // 5-frame animation
+    bat[i] = loadImage("./assets/partygoers/bat/" + i + ".png"); // bat
+  }
+
+  for (let i = 0; i < 9; i++) { // 8-frame animation
+    guy[i] = loadImage("./assets/partygoers/guy/" + i + ".png"); // guy
   }
 }
 
 function displayUI() {
-  fill(120, 255, 255);
-  if (stopped) {
+  fill(120, 255, 255); // text color
+  if (stopped) { // pause screen / start screen
     textAlign(CENTER, CENTER);
     textSize(width/20);
-    text("PRESS 'SPACE' TO START", width/2, height/2);
+    text("PRESS 'SPACE' TO START", width/2, height*0.45);
+    textSize(width/33);
+    text("PRESS 'F' AND 'J' TO ADJUST SENSITIVITY", width/2, height*0.55);
   } else {
-     textAlign(LEFT, CENTER);
-     textSize(width/100);
-     if (inputMic) {
-       text("Mic", width * 0.025, height * 0.95);
-     } else {
-       text("Music", width * 0.025, height * 0.95);
-     }
-   }
+    textAlign(LEFT, CENTER); // displays audio source
+    textSize(width/100);
+    if (inputMic) {
+      text("Mic", width * 0.025, height * 0.95);
+    } else {
+      text("Music", width * 0.025, height * 0.95);
+    }
+    if (sBar_isVisible) {
+      fill(0, 0, 100, sBar_opac);
+      noStroke();
+      for (let i = 0; i < volSense; i++) {
+        rect(i*(width/senseMax), height-sBar_h, width/senseMax, sBar_h);
+      }
+      sBar_opac -= 1.5;
+      if (sBar_opac < 0) {
+        sBar_isVisible = false;
+      }
+    }
+  }
+}
+
+function updateLights() {
+  lightHue = map(spectrum[100]*volSense/10, 0, 255, 25, 360);
+  lightBright = map(spectrum[0]*volSense/70, 0, 255, 0, 100);
 }
 
 function displayLights() {
-    for(let i = 0; i < sLen; i++) {
-    let h = map(spectrum[i], 0, 255, 100, 255);
-    noStroke();
-  }
+  noStroke();
+  // fill(lightHue, 100, 100, 40);
+  // fill(0, 0, 80-millis()/100, millis()/100);
+  // fill(0, 0, 0, millis()/100);
+  fill(0, 0, 0, 110-(lightBright*2.5));
+  rect(0, 0, width, height);
+
+  fill(lightHue, 100, lightBright + 10, lightBright);
+  rect(0, 0, width, height);
 }
 
 let stopped = true;
 
 function keyPressed() {
-  // background(0);
   if (setupFinished) {
     if (keyCode == 32) {
-    getAudioContext().resume();
+      getAudioContext().resume();
 
-    if (!startAudio) {
-      mic = new p5.AudioIn();
-      fft = new p5.FFT();
-      mic.start();
-      startAudio = true;
-    }
+      if (!startAudio) {
+        mic = new p5.AudioIn();
+        fft = new p5.FFT();
+        mic.start();
+        fft.setInput(mic);
+        inputMic = true;
+        startAudio = true;
+      }
 
       if (stopped) {
           loop();
@@ -300,80 +310,199 @@ function keyPressed() {
           stopped = true;
           reset();
       }
+    } else if (keyCode == 70) {
+      sBar_opac = 100;
+      sBar_isVisible = true;
+      volSense -= senseStep;
+      if (volSense < 0) {
+        volSense = 0;
+      }
+    } else if (keyCode == 74) {
+      sBar_opac = 100;
+      sBar_isVisible = true;
+      volSense += senseStep;
+      if (volSense > senseMax) {
+        volSense = senseMax;
+      }
     }
   }
 }
 
-// function mousePressed() {
-//   if (!stopped) {
-//     if (inputMic) {
-//       fft.setInput(sound);
-//       inputMic = false;
-//       sound.loop();
-//     } else {
-//       fft.setInput(mic);
-//       inputMic = true;
-//       sound.stop();
-//     }
-//   }
-// }
+function mousePressed() {
+  if (!stopped) {
+    if (inputMic) {
+      fft.setInput(sound);
+      inputMic = false;
+      sound.loop();
+    } else {
+      fft.setInput(mic);
+      inputMic = true;
+      sound.stop();
+    }
+  }
+}
 
 function reset() {
-  camX = 0;
 
+  scrollSpeed = width*0.0055
+
+  // rooms
   lr = new LivingRoom(0);
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
 
+  // thought bubble
+  tb = new Thoughtbubble();
 }
 
 class PartyGoer
 {
-  // constructor(x, y, size, asleep) {
-  //   this.startX = x;
-  //   this.startY = y;
-  //   this.x = this.startX;
-  //   this.y = this.startY;
-  //   this.size = size;
-  //   // this.scale = scale;
-  //   this.onscreen = true;
-  //   this.sfIndex = 0;
-  //   this.asleep = asleep;
-  // }
-
-  constructor(x, y, size, sleepy) {
-    this.startX = x;
-    this.startY = y;
-    this.x = this.startX;
-    this.y = this.startY;
-    this.size = size;
-    // this.scale = scale;
+  constructor(anim, seq, rate, x, y, scale, range, tired, sleepX, sleepY) {
+    this.x = width * (x / 100);
+    this.y = height * (y / 100);
+    this.dY = y; // dance y
+    this.sleepX = width * (sleepX / 100); // x coordinate while asleep
+    this.sleepY = height * (sleepY / 100); // y coordinate while asleep
+    this.scale = scale;
     this.onscreen = true;
-    this.sfIndex = 0;
-    this.asleep = false;
-    this.sleepy = sleepy;
+    this.range = range; // spectrum frequency range
+    this.asleep = false; // whether or not they're asleep
+    this.tired = tired; // whether or not they fall asleep early
+    this.anim = anim; // frame array
+    this.ratio = this.anim[0].width/this.anim[0].height;
+    this.w = height/2*this.scale;
+    this.h = height/2*this.scale*this.ratio;
+    this.seq = seq; // frame sequence
+    this.animIndex = 0; // place in animation sequence
+    this.rate = rate; // animation framerate (1s, 2s 3s, etc.)
   }
   
+  update() {
+    if (frameCount % this.rate == 0) { // animate sprite
+      this.animIndex++;
+      if (this.animIndex >= this.seq.length) {
+        this.animIndex = 0;
+      }
+    }
+  }
+
   display() {
     let img;
     if (!this.asleep) {
-      img = sf[this.sfIndex];
-    } else {
-      img = sfAsleep;
-    }
-    this.w = img.width/(5-this.size);
-    this.h = img.height/(5-this.size);
-    image(img, this.x, this.y, img.width/(5-this.size), 
-          img.height/(5-this.size));
-  }
+      img = this.anim[this.seq[this.animIndex]];
 
-  anim() {
-    this.sfIndex++;
-    if (this.sfIndex >= sf.length) {
-      this.sfIndex = 0;
+      this.ratio = img.width/img.height;
+
+      this.w = height/2*this.scale;
+      this.h = height/2*this.ratio*this.scale;
+
+      this.dY = this.y
+      this.dance();
+
+      image(img, this.x, this.dY, this.w, this.h);
+    } else {
+      img = this.anim[this.anim.length-1];
+
+      this.ratio = img.width/img.height;
+
+      this.w = height/2*this.scale;
+      this.h = height/2*this.ratio*this.scale;
+
+      image(img, this.sleepX, this.sleepY, this.w, this.h)
+    }
+  } 
+
+  dance() {
+  if (startAudio) {
+      // spectrum = fft.analyze();
+      let avg = 0;
+      for (let i = 0; i < 24; i++) {
+        avg += spectrum[this.range + i];
+      }
+      avg /= 24;
+
+      let d = map(avg, 0, 255, 0, this.h*(volSense/130));
+      this.dY += d;
+
+      if (d + (this.h*0.8) > height) {
+        d = height-(this.h*0.8);
+      }
     }
   }
 }
+
+class Creep extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 0];
+    super(crp, seq, 4, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class StickFigure extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1];
+    super(sf, seq, 50, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Head extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1, 2, 3, 2, 1];
+    super(head, seq, 5, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Bat extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1, 2, 3, 4, 2];
+    super(bat, seq, 4, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Guy extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1, 2, 3, 4, 5, 6, 7];
+    super(guy, seq, 4, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Bear extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1];
+    super(bear, seq, 10, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Leopard extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1];
+    super(leop, seq, 11, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Wolf1 extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1];
+    super(wolf1, seq, 20, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Wolf2 extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1];
+    super(wolf2, seq, 23, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
 
 class LivingRoom
 {
@@ -381,7 +510,10 @@ class LivingRoom
     this.x = x;
     this.w = height * (lrBg.width/lrBg.height);
     this.onscreen = true;
-    this.pg = [];
+    this.pg = []; // partygoer array
+    this.phase = 0;
+
+    this.init();
   }
 
   update(trailX) {
@@ -389,18 +521,54 @@ class LivingRoom
     if (this.x + this.w < 0) {
       this.onscreen = false;
       this.x = trailX-scrollSpeed;
+      this.phase++;
+      if (this.phase > 2) {
+        this.phase = 0;
+        for(let i = 0; i < this.pg.length; i++) {
+          this.pg[i].asleep=false;
+        }
+      }
     } else if (this.x < width) {
       this.onscreen = true;
     }
-  }
 
-  display() {
-    if (this.onscreen) {
-      image(lrBg, this.x, 0, this.w, height);
-      for (let i = 0; i < this.pg.length; i++) {
-
+    if (this.phase == 1) {
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.pg[i].tired) {
+          this.pg[i].asleep = true;
+        }
       }
     }
+
+    if (this.phase == 2) {
+      for(let i = 0; i < this.pg.length; i++) {
+        this.pg[i].asleep = true;
+      }
+    }
+  }
+
+  displayBG() {
+    if (this.onscreen) {
+      image(lrBg, this.x, 0, this.w, height);
+    }
+  }
+
+  displayPG() {
+    push();
+      translate(this.x, 0);
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.x + this.pg[i].x + this.pg[i].w > 0) {
+          this.pg[i].update();
+          this.pg[i].display();
+        }
+      }
+    pop();
+  }
+
+  init() {
+    this.pg.push(new Wolf1(47, 42, 0.8, 800, true, 46, 59));
+    this.pg.push(new StickFigure(37, 51, 0.3, 1000, false, 37, 51));
+    this.pg.push(new Creep(15, 65, 0.7, 0, false, 15, 65));
   }
 }
 
@@ -410,6 +578,10 @@ class Kitchen
     this.x = x;
     this.w = height * (kBg.width/kBg.height);
     this.onscreen = true;
+    this.pg = []; // partygoer array
+    this.phase = 0;
+
+    this.init();
   }
 
   update(trailX) {
@@ -417,13 +589,56 @@ class Kitchen
     if (this.x + this.w < 0) {
       this.onscreen = false;
       this.x = trailX-scrollSpeed;
+      this.phase++;
+      if (this.phase > 2) {
+        this.phase = 0;
+        for(let i = 0; i < this.pg.length; i++) {
+          this.pg[i].asleep=false;
+        }
+      }
     } else if (this.x < width) {
       this.onscreen = true;
     }
+
+    if (this.phase == 1) {
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.pg[i].tired) {
+          this.pg[i].asleep = true;
+        }
+      }
+    }
+
+    if (this.phase == 2) {
+      for(let i = 0; i < this.pg.length; i++) {
+        this.pg[i].asleep = true;
+      }
+    }
   }
 
-  display() {
-    image(kBg, this.x, 0, this.w, height);
+  displayBG() {
+    if (this.onscreen) {
+      image(kBg, this.x, 0, this.w, height);
+    }
+  }
+
+  displayPG() {
+    push();
+      translate(this.x, 0);
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.x + this.pg[i].x + this.pg[i].w > 0 - (width*0.16)) {
+          this.pg[i].update();
+          this.pg[i].display();
+        }
+      }
+    pop();
+  }
+
+  init() {
+    this.pg.push(new StickFigure(64, 41, 0.3, 30, true, 28, 32.5));
+    this.pg.push(new Guy(8, 15, 1.8, 230, false, 25, 15));
+    this.pg.push(new Wolf2(45, 65, 0.8, 500, true, -2, 13));
+    this.pg.push(new Leopard(26, 65, 0.95, 300, false, 45.5, 27));
+    this.pg.push(new Head(20, 73, 0.6, 40, false, 20, 73));
   }
 }
 
@@ -433,6 +648,10 @@ class Hallway
     this.x = x;
     this.w = height * (hwBg.width/hwBg.height);
     this.onscreen = true;
+    this.pg = []; // partygoer array
+    this.phase = 0;
+
+    this.init();
   }
 
   update(trailX) {
@@ -440,12 +659,83 @@ class Hallway
     if (this.x + this.w < 0) {
       this.onscreen = false;
       this.x = trailX-scrollSpeed;
+      this.phase++;
+      if (this.phase > 2) {
+        this.phase = 0;
+        for(let i = 0; i < this.pg.length; i++) {
+          this.pg[i].asleep=false;
+        }
+      }
     } else if (this.x < width) {
       this.onscreen = true;
     }
+
+    if (this.phase == 1) {
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.pg[i].tired) {
+          this.pg[i].asleep = true;
+        }
+      }
+    }
+
+    if (this.phase == 2 && !this.onscreen) {
+
+      for(let i = 0; i < this.pg.length; i++) {
+        this.pg[i].asleep = true;
+      }
+      tb.update();
+    }
   }
 
-  display() {
-    image(hwBg, this.x, 0, this.w, height);
+  displayBG() {
+    if (this.onscreen) {
+      image(hwBg, this.x, 0, this.w, height);
+    }
+  }
+
+  displayPG() {
+    push();
+      translate(this.x, 0);
+      for(let i = 0; i < this.pg.length; i++) {
+        if (this.x + this.pg[i].x + this.pg[i].w > 0) {
+          this.pg[i].update();
+          this.pg[i].display();
+        }
+      }
+    pop();
+  }
+
+  init() {
+    this.pg.push(new Bear(20, 50, 0.7, 650, true, 10, 50));
+    this.pg.push(new Creep(-5, 50, 1, 20, false, -5, 50));
+    this.pg.push(new Bat(10, 7, 0.7, 25, true, 10, 7));
+  }
+}
+
+class Thoughtbubble{
+  constructor() {
+    this.x = 0;
+    this.index = 0;
+    this.rate = 15;
+    this.ratio = tb1.width/tb1.height;
+    this.w = height*this.ratio;
+  }
+  
+  update() {
+    if (frameCount % this.rate == 0) {
+      this.index++;
+      if (this.index > 1) {
+        this.index = 0;
+      }
+    }
+  }
+
+  display(x) {
+    this.x = x;
+    if (this.index == 0) {
+      image(tb1, this.x, 0, this.w, height);
+    } else {
+      image(tb2, this.x, 0, this.w, height);
+    }
   }
 }
