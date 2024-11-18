@@ -18,8 +18,9 @@ let sLen;
 let wLen; // spectrum length and waveform length
 let vol; // volume level
 let normVol; // normalized volume level
-let volSense = 15; // volume sensitivity
+let volSense = 25; // volume sensitivity
 let senseStep = 1; // slider interval
+let senseMax = 100;
 
 // display
 let ratio = 1.6;
@@ -31,12 +32,22 @@ let turnSpeed;
 
 let scrollSpeed;
 
+let lightHue = 30;
+let lightOpac = 10;
+let lightBright = 10;
+
+// sensitivity bar
+let sBar_isVisible = false;
+let sBar_h; // sensitivity bar height
+let sBar_opac;
+
 // partygoers
 let partyGoers = [];
 let sf = []; // stick figure assets
 let crp = []; // creep assets
 let head = []; // head assets
 let bat = []; // bat assets
+let guy = []; // guy assets
 
 let bear = []; // bear assets
 let leop = []; // leopard assets
@@ -67,25 +78,25 @@ function preload() {
 }
 
 function setup() {
-
+// display
   fitToScreen();
-
   frameRate(30);
-
-  scrollSpeed = width*0.0025; // set scroll speed
-  // scrollSpeed = width*0.005
-
-  sound.amp(.8); // set sound volume
-
-  // style
+  // scrollSpeed = width*0.0025; // set scroll speed
+  scrollSpeed = width*0.006
+  sBar_h = width/250;
   textFont("Courier New");
-  colorMode(HSB);
+  colorMode(HSB, 360, 100, 100, 100);
   
+  // rooms
   lr = new LivingRoom(0);
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
 
+  // thought bubble
   tb = new Thoughtbubble();
+
+  // audio
+  sound.amp(.8); // set sound volume
 
   noLoop();
 
@@ -102,6 +113,7 @@ function draw() {
     hw.update(k.x + k.w);
 
     tb.update();
+    updateLights();
   }
 
   lr.displayBG();
@@ -158,6 +170,8 @@ if (window.innerWidth > window.innerHeight &&
     hw.displayPG();
 
     displayUI();
+
+    scrollSpeed = width*0.004
   }
 }
 
@@ -220,32 +234,57 @@ function loadPartyGoerAssets() {
   for (let i = 0; i < 6; i++) { // 5-frame animation
     bat[i] = loadImage("./assets/partygoers/bat/" + i + ".png"); // bat
   }
+
+  for (let i = 0; i < 9; i++) { // 8-frame animation
+    guy[i] = loadImage("./assets/partygoers/guy/" + i + ".png"); // guy
+  }
 }
 
 function displayUI() {
-  fill(120, 255, 255);
-  if (stopped) {
+  fill(120, 255, 255); // text color
+  if (stopped) { // pause screen / start screen
     textAlign(CENTER, CENTER);
     textSize(width/20);
     text("PRESS 'SPACE' TO START", width/2, height*0.45);
     textSize(width/33);
     text("PRESS 'F' AND 'J' TO ADJUST SENSITIVITY", width/2, height*0.55);
   } else {
-     textAlign(LEFT, CENTER);
-     textSize(width/100);
-     if (inputMic) {
-       text("Mic", width * 0.025, height * 0.95);
-     } else {
-       text("Music", width * 0.025, height * 0.95);
-     }
-   }
+    textAlign(LEFT, CENTER); // displays audio source
+    textSize(width/100);
+    if (inputMic) {
+      text("Mic", width * 0.025, height * 0.95);
+    } else {
+      text("Music", width * 0.025, height * 0.95);
+    }
+    if (sBar_isVisible) {
+      fill(0, 0, 100, sBar_opac);
+      noStroke();
+      for (let i = 0; i < volSense; i++) {
+        rect(i*(width/senseMax), height-sBar_h, width/senseMax, sBar_h);
+      }
+      sBar_opac -= 1.5;
+      if (sBar_opac < 0) {
+        sBar_isVisible = false;
+      }
+    }
+  }
+}
+
+function updateLights() {
+  lightHue = map(spectrum[0]*volSense/25, 0, 255, 25, 360);
+  lightBright = map(spectrum[100]*volSense/10, 0, 255, 0, 100);
 }
 
 function displayLights() {
-    for(let i = 0; i < sLen; i++) {
-    let h = map(spectrum[i], 0, 255, 100, 255);
-    noStroke();
-  }
+  noStroke();
+  // fill(lightHue, 100, 100, 40);
+  // fill(0, 0, 80-millis()/100, millis()/100);
+  // fill(0, 0, 0, millis()/100);
+  fill(0, 0, 0, 80-lightBright);
+  rect(0, 0, width, height);
+
+  fill(lightHue, 100, lightBright + 10, lightBright);
+  rect(0, 0, width, height);
 }
 
 let stopped = true;
@@ -278,6 +317,20 @@ function keyPressed() {
           stopped = true;
           reset();
       }
+    } else if (keyCode == 70) {
+      sBar_opac = 100;
+      sBar_isVisible = true;
+      volSense -= senseStep;
+      if (volSense < 0) {
+        volSense = 0;
+      }
+    } else if (keyCode == 74) {
+      sBar_opac = 100;
+      sBar_isVisible = true;
+      volSense += senseStep;
+      if (volSense > senseMax) {
+        volSense = senseMax;
+      }
     }
   }
 }
@@ -300,6 +353,9 @@ function reset() {
   lr = new LivingRoom(0);
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
+
+  tb = new Thoughtbubble();
+  scrollSpeed = width*0.004
 }
 
 class PartyGoer
@@ -361,7 +417,7 @@ class PartyGoer
 
   dance() {
   if (startAudio) {
-      spectrum = fft.analyze();
+      // spectrum = fft.analyze();
       let avg = 0;
       for (let i = 0; i < 24; i++) {
         avg += spectrum[this.range + i];
@@ -370,6 +426,10 @@ class PartyGoer
 
       let d = map(avg, 0, 255, 0, this.h*(volSense/100));
       this.dY += d;
+
+      if (d + (this.h*0.8) > height) {
+        d = height-(this.h*0.8);
+      }
     }
   }
 }
@@ -403,6 +463,14 @@ class Bat extends PartyGoer
   constructor(x, y, scale, range, tired, sleepX, sleepY) {
     let seq = [0, 1, 2, 3, 4, 2];
     super(bat, seq, 4, x, y, scale, range, tired, sleepX, sleepY);
+  }
+}
+
+class Guy extends PartyGoer
+{
+  constructor(x, y, scale, range, tired, sleepX, sleepY) {
+    let seq = [0, 1, 2, 3, 4, 5, 6, 7];
+    super(guy, seq, 6, x, y, scale, range, tired, sleepX, sleepY);
   }
 }
 
