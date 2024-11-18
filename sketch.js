@@ -34,6 +34,7 @@ let scrollSpeed;
 
 let lightHue = 30;
 let lightOpac = 10;
+let lightSpeed = 1;
 let lightBright = 10;
 
 // sensitivity bar
@@ -266,7 +267,8 @@ function displayUI() {
 }
 
 function updateLights() {
-  lightHue = map(spectrum[100]*volSense/10, 0, 255, 25, 360);
+  // lightHue = map(spectrum[100]*volSense/10, 0, 255, 25, 360);
+  lightSpeed = map(spectrum[0], 0, 255, 0.1, 2.5);
   lightBright = map(spectrum[0]*volSense/70, 0, 255, 0, 100);
 }
 
@@ -275,11 +277,16 @@ function displayLights() {
   // fill(lightHue, 100, 100, 40);
   // fill(0, 0, 80-millis()/100, millis()/100);
   // fill(0, 0, 0, millis()/100);
-  fill(0, 0, 0, 110-(lightBright*2.5));
+  fill(0, 0, 0, 150-(lightBright*3.7));
   rect(0, 0, width, height);
 
   fill(lightHue, 100, lightBright + 10, lightBright);
   rect(0, 0, width, height);
+  console.log(lightSpeed);
+  lightHue += lightSpeed;
+  if (lightHue > 360) {
+    lightHue = 0;
+  }
 }
 
 let stopped = true;
