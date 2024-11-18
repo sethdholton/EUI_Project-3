@@ -82,18 +82,11 @@ function setup() {
   fitToScreen();
   frameRate(30);
   // scrollSpeed = width*0.0025; // set scroll speed
-  scrollSpeed = width*0.006
   sBar_h = width/250;
   textFont("Courier New");
   colorMode(HSB, 360, 100, 100, 100);
-  
-  // rooms
-  lr = new LivingRoom(0);
-  k = new Kitchen(lr.w);
-  hw = new Hallway(lr.w + k.w);
 
-  // thought bubble
-  tb = new Thoughtbubble();
+  reset();
 
   // audio
   sound.amp(.8); // set sound volume
@@ -271,8 +264,8 @@ function displayUI() {
 }
 
 function updateLights() {
-  lightHue = map(spectrum[0]*volSense/25, 0, 255, 25, 360);
-  lightBright = map(spectrum[100]*volSense/10, 0, 255, 0, 100);
+  lightHue = map(spectrum[100]*volSense/10, 0, 255, 25, 360);
+  lightBright = map(spectrum[0]*volSense/70, 0, 255, 0, 100);
 }
 
 function displayLights() {
@@ -280,7 +273,7 @@ function displayLights() {
   // fill(lightHue, 100, 100, 40);
   // fill(0, 0, 80-millis()/100, millis()/100);
   // fill(0, 0, 0, millis()/100);
-  fill(0, 0, 0, 80-lightBright);
+  fill(0, 0, 0, 110-(lightBright*2.5));
   rect(0, 0, width, height);
 
   fill(lightHue, 100, lightBright + 10, lightBright);
@@ -350,12 +343,16 @@ function mousePressed() {
 }
 
 function reset() {
+
+  scrollSpeed = width*0.0055
+
+  // rooms
   lr = new LivingRoom(0);
   k = new Kitchen(lr.w);
   hw = new Hallway(lr.w + k.w);
 
+  // thought bubble
   tb = new Thoughtbubble();
-  scrollSpeed = width*0.004
 }
 
 class PartyGoer
@@ -424,7 +421,7 @@ class PartyGoer
       }
       avg /= 24;
 
-      let d = map(avg, 0, 255, 0, this.h*(volSense/100));
+      let d = map(avg, 0, 255, 0, this.h*(volSense/130));
       this.dY += d;
 
       if (d + (this.h*0.8) > height) {
@@ -470,7 +467,7 @@ class Guy extends PartyGoer
 {
   constructor(x, y, scale, range, tired, sleepX, sleepY) {
     let seq = [0, 1, 2, 3, 4, 5, 6, 7];
-    super(guy, seq, 6, x, y, scale, range, tired, sleepX, sleepY);
+    super(guy, seq, 4, x, y, scale, range, tired, sleepX, sleepY);
   }
 }
 
@@ -637,8 +634,9 @@ class Kitchen
   }
 
   init() {
-    this.pg.push(new Wolf2(45, 65, 0.8, 500, true, -2, 13));
     this.pg.push(new StickFigure(64, 41, 0.3, 30, true, 28, 32.5));
+    this.pg.push(new Guy(8, 15, 1.8, 230, false, 25, 15));
+    this.pg.push(new Wolf2(45, 65, 0.8, 500, true, -2, 13));
     this.pg.push(new Leopard(26, 65, 0.95, 300, false, 45.5, 27));
     this.pg.push(new Head(20, 73, 0.6, 40, false, 20, 73));
   }
